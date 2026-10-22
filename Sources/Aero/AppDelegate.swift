@@ -56,22 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
-        if !dragOK {
-            menu.addItem(item("Dar permissão de Acessibilidade…", #selector(openAccessibilitySettings)))
-        } else if !pendingHotkeys.isEmpty {
-            menu.addItem(disabled("Atalhos em uso por outro app (Rectangle?)"))
-        } else {
-            menu.addItem(disabled("Aero ativo"))
-        }
-        menu.addItem(.separator())
-        menu.addItem(disabled("Arraste até a borda ou o canto para encaixar"))
-        menu.addItem(disabled("⌘ ← → ↑ ↓   Encaixar / restaurar"))
-        menu.addItem(disabled("⌘⇧ ← → ↑ ↓   Mover para outro monitor"))
-        menu.addItem(.separator())
-        let login = item("Abrir ao iniciar sessão", #selector(toggleLoginItem))
-        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(login)
-        menu.addItem(item("Sair", #selector(NSApplication.terminate(_:)), key: "q"))
+        menu.delegate = self
         statusItem.menu = menu
     }
 
@@ -101,6 +86,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.isEnabled = false
         return item
+    }
+
+    @objc private func snapFocused(_ sender: NSMenuItem) {
+        guard let zone = sender.representedObject as? String else { return }
+        if zone == "restore" {
+            if let window = Window.focused() { manager.restore(window) }
+        } else if let zone = SnapZone(rawValue: zone) {
+            manager.snapFocused(to: zone)
+        }
+    }
+
+    @objc private func moveFocused(_ sender: NSMenuItem) {
+        guard let direction = sender.representedObject as? Direction else { return }
+        manager.moveToDisplay(direction)
     }
 
     @objc private func openAccessibilitySettings() {
@@ -153,5 +152,94 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             default: break
             }
         }
+    }
+}
+
+// MARK: Menu da barra
+
+extension AppDelegate: NSMenuDelegate {
+    /// Montado a cada abertura, pra refletir a janela em foco e os monitores daquele momento.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        if !dragOK {
+            menu.addItem(item("Dar permissão de Acessibilidade…", #selector(openAccessibilitySettings)))
+            menu.addItem(.separator())
+        } else if !pendingHotkeys.isEmpty {
+            menu.addItem(disabled("Atalhos em uso por outro app (Rectangle?)"))
+            menu.addItem(.separator())
+        }
+
+        let window = Window.focused()
+        let positions: [(String, String, String?, CGRect)] = [
+            ("Metade esquerda", SnapZone.left.rawValue, "←", CGRect(x: 0, y: 0, width: 0.5, height: 1)),
+            ("Metade direita", SnapZone.right.rawValue, "→", CGRect(x: 0.5, y: 0, width: 0.5, height: 1)),
+            ("Superior esquerdo", SnapZone.topLeft.rawValue, nil, CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5)),
+            ("Superior direito", SnapZone.topRight.rawValue, nil, CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5)),
+            ("Inferior esquerdo", SnapZone.bottomLeft.rawValue, nil, CGRect(x: 0, y: 0, width: 0.5, height: 0.5)),
+            ("Inferior direito", SnapZone.bottomRight.rawValue, nil, CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5)),
+            ("Maximizar", SnapZone.maximize.rawValue, "↑", CGRect(x: 0, y: 0, width: 1, height: 1)),
+            ("Restaurar", "restore", "↓", CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)),
+        ]
+        for (index, (title, zone, arrow, area)) in positions.enumerated() {
+            if index == 2 || index == 6 { menu.addItem(.separator()) }
+            let entry = NSMenuItem(title: title, action: window == nil ? nil : #selector(snapFocused(_:)), keyEquivalent: "")
+            entry.target = self
+            entry.representedObject = zone
+            entry.image = layoutIcon(area)
+            if let arrow { setArrowKey(entry, arrow, [.command]) }
+            menu.addItem(entry)
+        }
+
+        menu.addItem(.separator())
+        let move = NSMenuItem(title: "Mover para outro monitor", action: nil, keyEquivalent: "")
+        move.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: nil)
+        let submenu = NSMenu()
+        let from = window.map { Display.best(for: $0.frame) }
+        for (title, direction, arrow) in [("Acima", Direction.up, "↑"), ("Abaixo", .down, "↓"),
+                                          ("À esquerda", .left, "←"), ("À direita", .right, "→")] {
+            let available = from?.neighbor(direction) != nil
+            let entry = NSMenuItem(title: title, action: available ? #selector(moveFocused(_:)) : nil, keyEquivalent: "")
+            entry.target = self
+            entry.representedObject = direction
+            setArrowKey(entry, arrow, [.command, .shift])
+            submenu.addItem(entry)
+        }
+        move.submenu = submenu
+        move.isEnabled = Display.all.count > 1
+        menu.addItem(move)
+
+        menu.addItem(.separator())
+        let login = item("Abrir ao iniciar sessão", #selector(toggleLoginItem))
+        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        menu.addItem(login)
+        menu.addItem(item("Sair", #selector(NSApplication.terminate(_:)), key: "q"))
+    }
+
+    /// Mostra o atalho alinhado à direita, desenhado pelo sistema (⇧⌘ na ordem do macOS).
+    private func setArrowKey(_ item: NSMenuItem, _ arrow: String, _ modifiers: NSEvent.ModifierFlags) {
+        let keys: [String: Int] = ["←": NSLeftArrowFunctionKey, "→": NSRightArrowFunctionKey,
+                                   "↑": NSUpArrowFunctionKey, "↓": NSDownArrowFunctionKey]
+        guard let code = keys[arrow], let scalar = UnicodeScalar(code) else { return }
+        item.keyEquivalent = String(Character(scalar))
+        item.keyEquivalentModifierMask = modifiers
+    }
+
+    /// Desenho da tela com a área ocupada preenchida; `area` em frações, origem embaixo.
+    private func layoutIcon(_ area: CGRect) -> NSImage {
+        let image = NSImage(size: NSSize(width: 22, height: 16), flipped: false) { _ in
+            let screen = NSRect(x: 1.5, y: 1.5, width: 19, height: 13)
+            let outline = NSBezierPath(roundedRect: screen, xRadius: 2.5, yRadius: 2.5)
+            outline.lineWidth = 1.1
+            NSColor.black.setStroke()
+            outline.stroke()
+            let inner = screen.insetBy(dx: 1.8, dy: 1.8)
+            let fill = NSRect(x: inner.minX + area.minX * inner.width, y: inner.minY + area.minY * inner.height,
+                              width: area.width * inner.width, height: area.height * inner.height)
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: fill.insetBy(dx: 0.4, dy: 0.4), xRadius: 1, yRadius: 1).fill()
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 }

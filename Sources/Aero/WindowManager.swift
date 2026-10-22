@@ -255,6 +255,12 @@ final class WindowManager {
         }
     }
 
+    /// Encaixe escolhido no menu da barra, na janela em foco.
+    func snapFocused(to zone: SnapZone) {
+        guard let window = Window.focused() else { return NSSound.beep() }
+        snap(window, to: zone, on: Display.best(for: window.frame), assistDelay: 0.45)
+    }
+
     /// ⌘⇧ + setas: leva a janela pro monitor vizinho, mantendo o encaixe ou a posição relativa.
     func moveToDisplay(_ direction: Direction) {
         guard let window = Window.focused() else { return NSSound.beep() }
