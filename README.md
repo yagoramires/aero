@@ -34,7 +34,7 @@ quando você tira ela do encaixe. O Aero faz isso e não tem nenhuma opção pra
   fica com o que sobrou, não com a metade fixa. Vale também para janelas posicionadas à mão.
 - **Divisória compartilhada**: com janelas lado a lado, redimensionar uma ajusta a vizinha. Se a
   vizinha chegar no tamanho mínimo dela, a outra para ali, sem ficar uma por cima da outra.
-- **Volta ao tamanho original**: arrastar uma janela encaixada (ou `⌃⌥↓` numa maximizada) devolve
+- **Volta ao tamanho original**: arrastar uma janela encaixada (ou `⌘↓` numa maximizada) devolve
   o tamanho de antes do primeiro encaixe, mesmo depois de trocar de encaixe várias vezes.
 - **Vários monitores**: arraste entre eles ou use os atalhos.
 - **Lembra dos encaixes** depois de reiniciar o app.
@@ -45,10 +45,14 @@ Mesma lógica do `Win` + setas do Windows:
 
 | Atalho | O que faz |
 | --- | --- |
-| `⌃⌥ ←` / `⌃⌥ →` | Metade esquerda/direita. De novo, vai pro monitor ao lado. A seta oposta restaura. |
-| `⌃⌥ ↑` | Maximiza. Numa metade, vai pro quadrante de cima. |
-| `⌃⌥ ↓` | Restaura a maximizada. Numa metade, vai pro quadrante de baixo. Senão, minimiza. |
-| `⌃⌥⇧` + setas | Leva a janela pro monitor daquele lado (inclusive em cima/embaixo). |
+| `⌘ ←` / `⌘ →` | Metade esquerda/direita. De novo, vai pro monitor ao lado. A seta oposta restaura. |
+| `⌘ ↑` | Maximiza. Numa metade, vai pro quadrante de cima. |
+| `⌘ ↓` | Restaura a maximizada. Numa metade, vai pro quadrante de baixo. Senão, minimiza. |
+| `⌘⇧` + setas | Leva a janela pro monitor daquele lado (inclusive em cima/embaixo). |
+
+Como no Windows, os atalhos valem no sistema todo. Por isso, enquanto o Aero estiver aberto, `⌘` + setas
+deixam de ir pro começo/fim da linha e do documento nos campos de texto, e `⌘⇧` + setas deixam de
+selecionar até lá. No Finder, `⌘↑`/`⌘↓` deixam de navegar entre pastas.
 
 ## Instalação
 
@@ -103,7 +107,7 @@ macOS para de confiar no app. Com um certificado fixo, a permissão sobrevive à
 ```sh
 defaults write local.aero debugBridge -bool true   # e reabra o app
 scripts/debug.sh dump        # estado em /tmp/aero-debug.txt
-scripts/debug.sh left        # simula ⌃⌥← na janela em foco (também right, up, down, screen-left...)
+scripts/debug.sh left        # simula ⌘← na janela em foco (também right, up, down, screen-left...)
 tail -f /tmp/aero-debug.log  # o que ele decidiu em cada arraste
 ```
 
