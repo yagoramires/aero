@@ -61,10 +61,12 @@ final class Updater {
         alert.addButton(withTitle: "Ver novidades")
         alert.addButton(withTitle: "Depois")
         switch alert.runModal() {
-        case .alertFirstButtonReturn: install(release)
+        case .alertFirstButtonReturn: return install(release)
         case .alertSecondButtonReturn: NSWorkspace.shared.open(release.page)
         default: break
         }
+        // Não atualizou agora: não pergunta de novo por essa versão; o menu continua oferecendo.
+        UserDefaults.standard.set(release.version, forKey: "postponedVersion")
     }
 
     static func isNewer(_ a: String, than b: String) -> Bool {
@@ -95,7 +97,7 @@ final class Updater {
         debugLog("update: instalada \(Self.currentVersion), última \(release.version)")
         available = newer ? release : nil
         onChange?()
-        if newer {
+        if newer && (manual || UserDefaults.standard.string(forKey: "postponedVersion") != release.version) {
             offer(release)
         } else if manual {
             Self.inform("Você está na versão mais recente", "Aero \(Self.currentVersion).")

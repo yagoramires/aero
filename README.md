@@ -36,8 +36,12 @@ quando você tira ela do encaixe. O Aero faz isso e não tem nenhuma opção pra
   se o espaço já estiver ocupado.
 - **Ocupa o espaço que sobrou**: se a janela da esquerda foi alargada, a próxima encaixada à direita
   fica com o que sobrou, não com a metade fixa. Vale também para janelas posicionadas à mão.
+- **Encaixar por cima**: soltar uma janela num lado já ocupado faz ela ficar no mesmo lugar e no
+  mesmo tamanho da que já estava ali, por cima dela.
 - **Divisória compartilhada**: com janelas lado a lado, redimensionar uma ajusta a vizinha. Se a
-  vizinha chegar no tamanho mínimo dela, a outra para ali, sem ficar uma por cima da outra.
+  vizinha chegar no tamanho mínimo dela, a outra para ali, sem ficar uma por cima da outra. Janelas
+  encaixadas no mesmo lugar (uma por cima da outra, ou maximizadas) mudam de tamanho juntas. Vale
+  pras janelas do mesmo Space, inclusive as minimizadas; as de outros Spaces não se mexem.
 - **Volta ao tamanho original**: arrastar uma janela encaixada (ou `⌘↓` numa maximizada) devolve
   o tamanho de antes do primeiro encaixe, mesmo depois de trocar de encaixe várias vezes.
 - **Vários monitores**: arraste entre eles ou use os atalhos.
