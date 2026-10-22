@@ -25,6 +25,20 @@ final class WindowManager {
     private var dragged: [CGWindowID: (size: CGSize, date: Date)] = [:]
     private(set) lazy var assist = SnapAssist(manager: self)
 
+    init() {
+        // App fechado: solta o observador dele (senão fica preso no run loop pra sempre).
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let self, let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            else { return }
+            for (id, s) in self.snapped where s.window.pid == pid { self.forget(id, "app fechado") }
+            if let observer = self.observers.removeValue(forKey: pid) {
+                CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
+            }
+        }
+    }
+
     // MARK: Encaixar e desencaixar
 
     func snap(_ window: Window, to zone: SnapZone, on display: Display, assistDelay: TimeInterval? = nil) {
@@ -69,8 +83,12 @@ final class WindowManager {
                 if f.maxY >= v.maxY - edge, f.midY > zoneFrame.midY, f.minY >= v.minY + room { bottoms.append((f.minY, window)) }
             }
         }
-        let left = lefts.max { $0.0 < $1.0 }, right = rights.min { $0.0 < $1.0 }
-        let top = tops.max { $0.0 < $1.0 }, bottom = bottoms.min { $0.0 < $1.0 }
+        // Só limita os lados da zona voltados pro meio da tela. Do lado da borda, quem está ali
+        // ocupa o mesmo lugar e a nova janela encaixa por cima dela, com o mesmo tamanho.
+        let left = zoneFrame.minX > v.minX + edge ? lefts.max { $0.0 < $1.0 } : nil
+        let right = zoneFrame.maxX < v.maxX - edge ? rights.min { $0.0 < $1.0 } : nil
+        let top = zoneFrame.minY > v.minY + edge ? tops.max { $0.0 < $1.0 } : nil
+        let bottom = zoneFrame.maxY < v.maxY - edge ? bottoms.min { $0.0 < $1.0 } : nil
         let fitted = CGRect(x: left?.0 ?? zoneFrame.minX, y: top?.0 ?? zoneFrame.minY,
                             width: (right?.0 ?? zoneFrame.maxX) - (left?.0 ?? zoneFrame.minX),
                             height: (bottom?.0 ?? zoneFrame.maxY) - (top?.0 ?? zoneFrame.minY))
@@ -141,16 +159,19 @@ final class WindowManager {
         return s
     }
 
-    /// Janelas encaixadas que ainda existem nesse monitor.
+    /// Janelas encaixadas que estão na tela nesse monitor (as de outro Space não ocupam espaço aqui).
     func snappedWindows(on display: Display) -> [Snapped] {
         for (id, s) in snapped where !s.window.isAlive { forget(id, "janela não existe mais") }
-        return snapped.values.filter { Display.best(for: $0.frame) == display }
+        let onScreen = Set(Window.onScreen())
+        return snapped.values.filter { onScreen.contains($0.window.id) && Display.best(for: $0.frame) == display }
     }
 
     @discardableResult
     private func forget(_ id: CGWindowID, _ reason: String) -> Snapped? {
         guard let s = snapped.removeValue(forKey: id) else { return nil }
         debugLog("esqueceu encaixe de \(id): \(reason)")
+        echoes[id] = nil
+        settles.removeValue(forKey: id)?.cancel()
         unobserve(s.window)
         return s
     }
@@ -291,7 +312,19 @@ final class WindowManager {
         snapped[window.id] = s
         if let echo = echoes[window.id], Date().timeIntervalSince(echo) < 0.3 { return }
         guard new.size != old.size else { return }
-        followEdge(of: window, from: old, to: new)
+        let around = neighbors(of: window, display: Display.best(for: old))
+        // Coberta por outra da mesma pilha: quem manda é a da frente. Um resize atrasado dela
+        // (tamanho mínimo, app lento) não pode desfazer o que o usuário fez na de cima.
+        let stacked = around.filter { isStacked($0.snapped.zone, $0.frame, with: s.zone, at: old) }
+        if !stacked.isEmpty {
+            let order = Window.onScreen()
+            if let mine = order.firstIndex(of: window.id),
+               let front = stacked.first(where: { (order.firstIndex(of: $0.id) ?? .max) < mine }) {
+                debugLog("resize de \(window.id) ignorado: está embaixo de \(front.id) na pilha")
+                return
+            }
+        }
+        followEdge(around, zone: s.zone, from: old, to: new)
 
         // Os apps aplicam tamanho mínimo e arredondamentos com atraso; quando o resize assenta,
         // acerta as bordas com os frames reais.
@@ -302,14 +335,16 @@ final class WindowManager {
     }
 
     /// Durante o resize: quem encostava na borda que mudou vai junto.
-    private func followEdge(of window: Window, from old: CGRect, to new: CGRect) {
+    private func followEdge(_ around: [Neighbor], zone: SnapZone, from old: CGRect, to new: CGRect) {
         // Tolerância folgada porque apps como o Terminal arredondam o tamanho pra colunas inteiras.
         let tolerance: CGFloat = 24
-        for (id, var other) in neighbors(of: window, display: Display.best(for: old)) {
-            // Frame real, não o guardado: se o guardado estiver defasado, a conta sai absurda.
-            let o = other.window.frame
+        for (id, var other, o) in around {
             var f = o
-            if new.maxX != old.maxX, abs(o.minX - old.maxX) < tolerance, o.verticalOverlap(old) > 50 {
+            // Encaixada embaixo, no mesmo lugar: muda junto, senão aparece no vão que abriu e
+            // esconde a vizinha que acompanhou a borda.
+            if isStacked(other.zone, o, with: zone, at: old) {
+                f = new
+            } else if new.maxX != old.maxX, abs(o.minX - old.maxX) < tolerance, o.verticalOverlap(old) > 50 {
                 f = CGRect(x: new.maxX, y: o.minY, width: o.maxX - new.maxX, height: o.height)
             } else if new.minX != old.minX, abs(o.maxX - old.minX) < tolerance, o.verticalOverlap(old) > 50 {
                 f.size.width = new.minX - o.minX
@@ -328,12 +363,25 @@ final class WindowManager {
     /// Depois do resize: se ficou um vão, a vizinha estica; se ficou uma por cima da outra (a
     /// vizinha bateu no tamanho mínimo), é a janela redimensionada que recua até ela.
     private func settleEdges(around window: Window) {
-        guard snapped[window.id] != nil else { return }
+        guard let zone = snapped[window.id]?.zone else { return }
         let reach: CGFloat = 80
         var a = window.frame
         let original = a
-        for (id, var other) in neighbors(of: window, display: Display.best(for: a)) {
-            let b = other.window.frame
+        var stack: [CGWindowID] = []
+        let display = Display.best(for: a), v = display.visible
+        for (id, var other, real) in neighbors(of: window, display: display) {
+            if isStacked(other.zone, real, with: zone, at: original) {
+                stack.append(id)
+                continue
+            }
+            // Vizinha que bateu no tamanho mínimo e foi empurrada pra fora da tela volta pra
+            // dentro; aí fica por cima da redimensionada, que recua até ela. Só se ela cabe na
+            // tela: uma maior que a tela ficaria pulando de um lado pro outro.
+            func inward(_ low: CGFloat, _ high: CGFloat, _ min: CGFloat, _ max: CGFloat) -> CGFloat {
+                high - low > max - min ? 0 : Swift.max(min - low, 0) + Swift.min(max - high, 0)
+            }
+            let b = real.offsetBy(dx: inward(real.minX, real.maxX, v.minX, v.maxX),
+                                  dy: inward(real.minY, real.maxY, v.minY, v.maxY))
             var fixed = b
             if b.verticalOverlap(a) > 50, b.midX > a.midX, abs(b.minX - a.maxX) < reach {
                 if b.minX > a.maxX { fixed = CGRect(x: a.maxX, y: b.minY, width: b.maxX - a.maxX, height: b.height) }
@@ -348,18 +396,49 @@ final class WindowManager {
                 if b.maxY < a.minY { fixed.size.height = a.minY - b.minY }
                 else { a = CGRect(x: a.minX, y: b.maxY, width: a.width, height: a.maxY - b.maxY) }
             }
-            if fixed != b { apply(other.window, fixed) }
+            if fixed != real { apply(other.window, fixed) }
             other.frame = fixed
             snapped[id] = other
         }
         if a != original { apply(window, a) }
         snapped[window.id]?.frame = a
+        // A pilha termina no frame final da de cima, inclusive se ela recuou acima.
+        for id in stack {
+            guard var other = snapped[id] else { continue }
+            if other.window.frame != a { apply(other.window, a) }
+            other.frame = a
+            snapped[id] = other
+        }
     }
 
-    private func neighbors(of window: Window, display: Display) -> [(CGWindowID, Snapped)] {
-        let displays = Display.all
-        return snapped.filter { $0.key != window.id && Display.best(for: $0.value.window.frame, among: displays) == display }
-            .map { ($0.key, $0.value) }
+    /// Encaixada na mesma zona e quase no mesmo lugar que `frame`: está empilhada e muda de
+    /// tamanho junto. Pela zona e pela área em comum, não pelo frame exato, pra que uma janela
+    /// presa no tamanho mínimo continue na pilha. Vale também pras maximizadas: diminuir uma
+    /// diminui as outras.
+    private func isStacked(_ otherZone: SnapZone, _ otherFrame: CGRect, with zone: SnapZone, at frame: CGRect) -> Bool {
+        guard otherZone == zone else { return false }
+        let shared = otherFrame.intersection(frame)
+        return !shared.isNull && shared.width * shared.height >= frame.width * frame.height * 0.5
+    }
+
+    typealias Neighbor = (id: CGWindowID, snapped: Snapped, frame: CGRect)
+
+    /// Encaixadas no mesmo monitor e no mesmo Space, inclusive as minimizadas (voltam já no
+    /// tamanho certo). As de outro Space têm o layout delas e não se mexem. Sem Space conhecido
+    /// (app oculto com ⌘H), conta como do mesmo. Já vem com o frame real, lido uma vez só.
+    private func neighbors(of window: Window, display: Display) -> [Neighbor] {
+        let displays = Display.all, spaces = window.spaces
+        return snapped.compactMap { id, other in
+            guard id != window.id else { return nil }
+            // Frame real, não o guardado: se o guardado estiver defasado, a conta sai absurda.
+            let frame = other.window.frame
+            guard Display.best(for: frame, among: displays) == display else { return nil }
+            if !spaces.isEmpty {
+                let theirs = other.window.spaces
+                guard theirs.isEmpty || !spaces.isDisjoint(with: theirs) else { return nil }
+            }
+            return (id, other, frame)
+        }
     }
 
     private func windowDestroyed(_ element: AXUIElement) {

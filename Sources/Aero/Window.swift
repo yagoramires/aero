@@ -6,6 +6,13 @@ import ApplicationServices
 @_silgen_name("_AXUIElementGetWindow")
 private func _AXUIElementGetWindow(_ element: AXUIElement, _ id: UnsafeMutablePointer<CGWindowID>) -> AXError
 
+// Também privadas e estáveis (yabai, AltTab): em que Spaces a janela está. Minimizada continua
+// no Space de onde saiu.
+@_silgen_name("CGSMainConnectionID")
+private func CGSMainConnectionID() -> Int32
+@_silgen_name("CGSCopySpacesForWindows")
+private func CGSCopySpacesForWindows(_ cid: Int32, _ mask: Int32, _ windows: CFArray) -> Unmanaged<CFArray>?
+
 /// Janela de outro app, manipulada pela API de Acessibilidade.
 /// Coordenadas sempre globais de cima pra baixo (ver `Display`).
 struct Window {
@@ -71,6 +78,15 @@ struct Window {
         return windows.sorted { order[$0.id]! < order[$1.id]! }
     }
 
+    /// IDs das janelas normais na tela agora (Space atual, não minimizadas), da frente pra trás.
+    static func onScreen() -> [CGWindowID] {
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        let info = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
+        return info.compactMap { entry in
+            entry[kCGWindowLayer as String] as? Int == 0 ? entry[kCGWindowNumber as String] as? CGWindowID : nil
+        }
+    }
+
     /// Frame real na tela. Vem do WindowServer, porque muitos apps (Electron, WebKit) demoram a
     /// atualizar a posição na Acessibilidade durante arrastes e depois de redimensionados; a
     /// Acessibilidade só entra quando a janela não está visível (minimizada, outro Space).
@@ -129,6 +145,12 @@ struct Window {
 
     func minimize() {
         element.set(kAXMinimizedAttribute, kCFBooleanTrue)
+    }
+
+    var spaces: Set<UInt64> {
+        let list = CGSCopySpacesForWindows(CGSMainConnectionID(), 7, [NSNumber(value: id)] as CFArray)?
+            .takeRetainedValue() as? [NSNumber] ?? []
+        return Set(list.map(\.uint64Value))
     }
 
     var title: String { element.attribute(kAXTitleAttribute) ?? "" }
