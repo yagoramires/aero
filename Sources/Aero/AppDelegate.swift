@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let manager = WindowManager()
     private lazy var drag = DragSnapper(manager: manager)
     private let hotkeys = Hotkeys()
+    private let updater = Updater()
     private var statusItem: NSStatusItem!
     private var dragOK = false
     private var pendingHotkeys: [(key: Int, modifiers: Int, action: () -> Void)] = []
@@ -27,6 +28,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         setupDebugBridge()
+
+        debugLog("iniciou\n\(Log.environment)")
+        updater.onChange = { [weak self] in self?.rebuildMenu() }
+        // Confere atualização logo depois de abrir e, como o app fica aberto por semanas, uma vez por dia.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [updater] in updater.check(manual: false) }
+        Timer.scheduledTimer(withTimeInterval: 24 * 60 * 60, repeats: true) { [updater] _ in
+            updater.check(manual: false)
+        }
     }
 
     private func start() {
@@ -49,8 +58,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func retry() {
-        if !dragOK { dragOK = drag.start() }
+        if !dragOK {
+            dragOK = drag.start()
+            debugLog(dragOK ? "monitor do mouse ligado" : "monitor do mouse ainda não liberado pelo sistema")
+        }
+        let before = pendingHotkeys.count
         pendingHotkeys.removeAll { hotkeys.register($0.key, $0.modifiers, $0.action) }
+        if pendingHotkeys.count != before || !pendingHotkeys.isEmpty {
+            debugLog("atalhos: \(8 - pendingHotkeys.count) de 8 registrados")
+        }
         rebuildMenu()
     }
 
@@ -102,6 +118,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         manager.moveToDisplay(direction)
     }
 
+    @objc private func checkForUpdates() {
+        if let release = updater.available { updater.offer(release) } else { updater.check(manual: true) }
+    }
+
+    @objc private func showLog() {
+        debugLog("log aberto pelo menu\n\(Log.environment)")
+        NSWorkspace.shared.activateFileViewerSelecting([Log.url])
+    }
+
+    /// Abre uma issue no GitHub já com o ambiente preenchido e mostra o log pra anexar.
+    @objc private func reportProblem() {
+        showLog()
+        let body = """
+        **O que aconteceu:**
+
+
+        **O que você esperava:**
+
+
+        **Ambiente:**
+        \(Log.environment)
+
+        _Arraste o arquivo aero.log (o Finder acabou de mostrar ele) pra cá._
+        """
+        var components = URLComponents(string: "https://github.com/yagoramires/aero/issues/new")!
+        components.queryItems = [URLQueryItem(name: "body", value: body)]
+        if let url = components.url { NSWorkspace.shared.open(url) }
+    }
+
     @objc private func openAccessibilitySettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
@@ -134,6 +179,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case "down": manager.handle(.down)
             case "screen-left": manager.moveToDisplay(.left)
             case "screen-right": manager.moveToDisplay(.right)
+            case "check-update": self?.updater.check(manual: true)
+            case "install-latest": self?.updater.installLatest()
             case "screen-up": manager.moveToDisplay(.up)
             case "screen-down": manager.moveToDisplay(.down)
             case "dump":
@@ -212,6 +259,19 @@ extension AppDelegate: NSMenuDelegate {
         let login = item("Abrir ao iniciar sessão", #selector(toggleLoginItem))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
+        menu.addItem(item(updater.available.map { "Atualizar para a versão \($0.version)…" } ?? "Buscar atualizações…",
+                          #selector(checkForUpdates)))
+
+        let help = NSMenuItem(title: "Ajuda", action: nil, keyEquivalent: "")
+        let helpMenu = NSMenu()
+        helpMenu.addItem(disabled("Aero \(Updater.currentVersion)"))
+        helpMenu.addItem(.separator())
+        helpMenu.addItem(item("Mostrar log de depuração", #selector(showLog)))
+        helpMenu.addItem(item("Reportar problema…", #selector(reportProblem)))
+        help.submenu = helpMenu
+        menu.addItem(help)
+
+        menu.addItem(.separator())
         menu.addItem(item("Sair", #selector(NSApplication.terminate(_:)), key: "q"))
     }
 

@@ -39,6 +39,9 @@ quando você tira ela do encaixe. O Aero faz isso e não tem nenhuma opção pra
 - **Vários monitores**: arraste entre eles ou use os atalhos.
 - **Menu na barra**: clique no ícone e escolha a posição (metades, quadrantes, maximizar, restaurar ou outro monitor), cada uma com o desenho da área que a janela vai ocupar.
 - **Lembra dos encaixes** depois de reiniciar o app.
+- **Atualiza sozinho**: ao abrir (e uma vez por dia) ele confere se tem versão nova no GitHub e oferece
+  instalar. Também dá pra conferir em **Buscar atualizações…** no menu. A versão baixada só é
+  instalada se tiver sido assinada pelo mesmo certificado do app em uso.
 
 ### Atalhos
 
@@ -67,6 +70,8 @@ selecionar até lá. No Finder, `⌘↑`/`⌘↓` deixam de navegar entre pastas
    Segurança → Acessibilidade → Aero). Ela é necessária pra mover e redimensionar janelas de outros
    apps. O Aero começa a funcionar sozinho assim que a permissão é dada.
 4. Opcional: no ícone da barra de menu, marque **Abrir ao iniciar sessão**.
+
+As próximas versões chegam pelo próprio app, que avisa e se atualiza sozinho.
 
 **Feche outros gerenciadores de janelas** (Rectangle, Tiles, Magnet...), porque eles usam os mesmos
 atalhos e o mesmo arraste. Se o encaixe nativo do macOS estiver ligado, desligue em **Ajustes do
@@ -101,7 +106,16 @@ macOS para de confiar no app. Com um certificado fixo, a permissão sobrevive à
 | `DragSnapper.swift` | Observa o mouse do sistema (event tap) pra detectar o arraste da janela e mostrar a prévia. |
 | `SnapAssist.swift` | Painel com as janelas candidatas a ocupar o espaço livre. |
 | `Hotkeys.swift` | Atalhos globais via Carbon (não precisam de permissão extra). |
-| `AppDelegate.swift` | Ícone da barra de menu, permissão e inicialização. |
+| `Updater.swift` | Confere releases no GitHub, baixa, valida a assinatura e troca o app. |
+| `Log.swift` | Log de depuração em `~/Library/Logs/Aero/`, com rotação. |
+| `AppDelegate.swift` | Menu da barra, permissão e inicialização. |
+
+### Problemas
+
+Em **Ajuda → Reportar problema…** no menu, o Aero abre uma issue no GitHub já com a versão, o macOS
+e os monitores preenchidos, e mostra no Finder o log pra você anexar. O log fica em
+`~/Library/Logs/Aero/aero.log` e só registra as decisões do app (qual janela foi arrastada, pra qual
+zona, por que um encaixe foi esquecido), nunca o conteúdo das janelas.
 
 ### Depuração
 
@@ -109,7 +123,7 @@ macOS para de confiar no app. Com um certificado fixo, a permissão sobrevive à
 defaults write local.aero debugBridge -bool true   # e reabra o app
 scripts/debug.sh dump        # estado em /tmp/aero-debug.txt
 scripts/debug.sh left        # simula ⌘← na janela em foco (também right, up, down, screen-left...)
-tail -f /tmp/aero-debug.log  # o que ele decidiu em cada arraste
+tail -f ~/Library/Logs/Aero/aero.log  # o que ele decidiu em cada arraste
 ```
 
 ## Limitações
