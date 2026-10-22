@@ -34,9 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let arrows = [(kVK_LeftArrow, Direction.left), (kVK_RightArrow, .right),
                       (kVK_UpArrow, .up), (kVK_DownArrow, .down)]
         pendingHotkeys = arrows.map { key, direction in
-            (key, controlKey | optionKey, { [manager] in manager.handle(direction) })
+            (key, cmdKey, { [manager] in manager.handle(direction) })
         } + arrows.map { key, direction in
-            (key, controlKey | optionKey | shiftKey, { [manager] in manager.moveToDisplay(direction) })
+            (key, cmdKey | shiftKey, { [manager] in manager.moveToDisplay(direction) })
         }
         retry()
         // Se outro app (ex.: Rectangle) ainda segura algum atalho, ou o macOS demorou a liberar
@@ -65,8 +65,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         menu.addItem(.separator())
         menu.addItem(disabled("Arraste até a borda ou o canto para encaixar"))
-        menu.addItem(disabled("⌃⌥ ← → ↑ ↓   Encaixar / restaurar"))
-        menu.addItem(disabled("⌃⌥⇧ ← → ↑ ↓   Mover para outro monitor"))
+        menu.addItem(disabled("⌘ ← → ↑ ↓   Encaixar / restaurar"))
+        menu.addItem(disabled("⌘⇧ ← → ↑ ↓   Mover para outro monitor"))
         menu.addItem(.separator())
         let login = item("Abrir ao iniciar sessão", #selector(toggleLoginItem))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off

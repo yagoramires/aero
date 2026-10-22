@@ -202,7 +202,7 @@ final class WindowManager {
         observe(window)
     }
 
-    // MARK: Atalhos (⌃⌥ + setas), mesma lógica do Win + setas
+    // MARK: Atalhos (⌘ + setas), mesma lógica do Win + setas
 
     func handle(_ direction: Direction) {
         guard let window = Window.focused() else { return NSSound.beep() }
@@ -255,7 +255,7 @@ final class WindowManager {
         }
     }
 
-    /// ⌃⌥⇧ + setas: leva a janela pro monitor vizinho, mantendo o encaixe ou a posição relativa.
+    /// ⌘⇧ + setas: leva a janela pro monitor vizinho, mantendo o encaixe ou a posição relativa.
     func moveToDisplay(_ direction: Direction) {
         guard let window = Window.focused() else { return NSSound.beep() }
         let from = Display.best(for: window.frame)
