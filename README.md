@@ -37,6 +37,7 @@ quando você tira ela do encaixe. O Aero faz isso e não tem nenhuma opção pra
 - **Volta ao tamanho original**: arrastar uma janela encaixada (ou `⌘↓` numa maximizada) devolve
   o tamanho de antes do primeiro encaixe, mesmo depois de trocar de encaixe várias vezes.
 - **Vários monitores**: arraste entre eles ou use os atalhos.
+- **Menu na barra**: clique no ícone e escolha a posição (metades, quadrantes, maximizar, restaurar ou outro monitor), cada uma com o desenho da área que a janela vai ocupar.
 - **Lembra dos encaixes** depois de reiniciar o app.
 
 ### Atalhos
