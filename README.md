@@ -9,7 +9,7 @@ Rectangle, Tiles e o encaixe nativo do macOS encaixam janelas, mas deixam de for
 ## Instalar
 
 1. Baixe o `Aero-x.y.z.dmg` (ou o `.zip`) na [página de releases](https://github.com/yagoramires/aero/releases/latest) e arraste o **Aero.app** pra pasta **Aplicativos**.
-2. Abra o Aero. Como ele não é assinado com um certificado pago da Apple, na primeira vez o macOS avisa que não conseguiu verificar o desenvolvedor. Clique com o botão direito no app → **Abrir**, ou vá em **Ajustes do Sistema → Privacidade e Segurança**, role até o fim e clique em **Abrir Mesmo Assim**. Pelo Terminal também resolve: `xattr -dr com.apple.quarantine /Applications/Aero.app`
+2. Abra o Aero. Como ele não é assinado com um certificado pago da Apple, na primeira vez o macOS avisa que não conseguiu verificar o desenvolvedor. Vá em **Ajustes do Sistema → Privacidade e Segurança**, role até o fim e clique em **Abrir Mesmo Assim**. No macOS 14 também dá para clicar com o botão direito no app → **Abrir** (a partir do macOS 15 esse atalho não libera mais o app). Pelo Terminal também resolve: `xattr -dr com.apple.quarantine /Applications/Aero.app`
 3. Dê a permissão de Acessibilidade quando ele pedir (veja **Permissões**).
 4. Opcional: no painel do ícone do Aero, ligue **Abrir ao iniciar sessão**.
 
