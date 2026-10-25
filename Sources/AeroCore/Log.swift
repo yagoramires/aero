@@ -9,6 +9,8 @@ enum Log {
     /// Passou disso, o atual vira aero.log.1 e começa outro: no máximo ~4 MB em disco.
     private static let limit: UInt64 = 2_000_000
     private static var handle: FileHandle?
+    /// Vem do `AeroApp.init`: no NeyHub o `Bundle.main` é o do NeyHub.
+    static var version = "?"
     private static let clock: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -27,7 +29,7 @@ enum Log {
     static var environment: String {
         let displays = Display.all.map { "\(Int($0.frame.width))×\(Int($0.frame.height)) em (\(Int($0.frame.minX)), \(Int($0.frame.minY)))" }
         return """
-        Aero \(Updater.currentVersion) · macOS \(ProcessInfo.processInfo.operatingSystemVersionString)
+        Aero \(version) · macOS \(ProcessInfo.processInfo.operatingSystemVersionString)
         Monitores: \(displays.joined(separator: "; "))
         Acessibilidade: \(AXIsProcessTrusted() ? "permitida" : "sem permissão")
         """

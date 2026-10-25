@@ -24,8 +24,10 @@ final class WindowManager {
     private var settles: [CGWindowID: DispatchWorkItem] = [:]
     private var dragged: [CGWindowID: (size: CGSize, date: Date)] = [:]
     private(set) lazy var assist = SnapAssist(manager: self)
+    private let defaults: UserDefaults
 
-    init() {
+    init(defaults: UserDefaults) {
+        self.defaults = defaults
         // App fechado: solta o observador dele (senão fica preso no run loop pra sempre).
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main
@@ -193,17 +195,17 @@ final class WindowManager {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: save)
     }
 
-    private func save() {
+    func save() {
         let entries = snapped.reduce(into: dormant) { result, entry in
             result[String(entry.key)] = ["zone": entry.value.zone.rawValue,
                                          "restore": NSStringFromRect(entry.value.restore),
                                          "frame": NSStringFromRect(entry.value.frame)]
         }
-        UserDefaults.standard.set(entries, forKey: "snapped")
+        defaults.set(entries, forKey: "snapped")
     }
 
     func load() {
-        guard let saved = UserDefaults.standard.dictionary(forKey: "snapped") as? [String: [String: String]] else { return }
+        guard let saved = defaults.dictionary(forKey: "snapped") as? [String: [String: String]] else { return }
         // Descarta janelas que não existem mais; as que existem mas não estão visíveis agora
         // ficam adormecidas.
         let existing = Set((CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] ?? [])
@@ -478,5 +480,18 @@ final class WindowManager {
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(created), .commonModes)
         observers[pid] = created
         return created
+    }
+
+    /// Desinstalado no NeyHub: para de seguir resize e fechamento (senão a divisória continua mexendo nas vizinhas).
+    func stop() {
+        for observer in observers.values {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
+        }
+        observers = [:]
+        settles.values.forEach { $0.cancel() }
+        settles = [:]
+        assist.dismiss()
+        pendingSave?.cancel()
+        save()
     }
 }

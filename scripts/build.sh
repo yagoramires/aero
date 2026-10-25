@@ -16,6 +16,14 @@ for arg in "$@"; do
   esac
 done
 
+# Sem fallback ad-hoc: a Acessibilidade, o NeyHub (plugin) e as atualizações conferem esta assinatura fixa.
+IDENTITY="Aero Local Signing"
+IDENTS=$(security find-identity -p codesigning)
+if ! grep -q "$IDENTITY" <<<"$IDENTS"; then
+  echo "✗ sem a identidade \"$IDENTITY\": rode scripts/setup-signing.sh" >&2
+  exit 1
+fi
+
 ARCHS=()
 (( DIST )) && ARCHS=(--arch arm64 --arch x86_64)
 swift build -c "$CONFIG" "${ARCHS[@]}"
@@ -28,14 +36,6 @@ cp "$BIN" "$APP/Contents/MacOS/Aero"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 [[ -f Resources/AppIcon.icns ]] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
-# A permissão de Acessibilidade fica presa à assinatura. Com assinatura ad-hoc ela muda a
-# cada build e o macOS para de confiar no app; por isso assinamos com um certificado local
-# fixo (scripts/setup-signing.sh).
-IDENTITY="Aero Local Signing"
-if ! security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
-  echo "⚠ sem certificado local: rode scripts/setup-signing.sh, senão a permissão some a cada build"
-  IDENTITY="-"
-fi
 codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
 echo "✓ $APP"
 

@@ -6,6 +6,8 @@ final class DragSnapper {
     private let manager: WindowManager
     private let preview = SnapPreview()
     private var tap: CFMachPort?
+    private var source: CFRunLoopSource?
+    private var watchdog: Timer?
 
     private enum State {
         case idle
@@ -39,15 +41,32 @@ final class DragSnapper {
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque())
         guard let tap else { return false }
-        CFRunLoopAddSource(CFRunLoopGetMain(), CFMachPortCreateRunLoopSource(nil, tap, 0), .commonModes)
+        source = CFMachPortCreateRunLoopSource(nil, tap, 0)
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
         // O macOS às vezes desliga o tap sem mandar o evento de aviso; confere de tempos em tempos.
-        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+        watchdog = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             guard let tap = self?.tap, !CGEvent.tapIsEnabled(tap: tap) else { return }
             debugLog("tap estava desligado; religando")
             CGEvent.tapEnable(tap: tap, enable: true)
         }
         return true
+    }
+
+    /// Desinstalado no NeyHub: solta o event tap na hora.
+    func stop() {
+        watchdog?.invalidate()
+        watchdog = nil
+        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        source = nil
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
+        }
+        tap = nil
+        preview.hide()
+        state = .idle
+        target = nil
     }
 
     var isEnabled: Bool { tap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false }

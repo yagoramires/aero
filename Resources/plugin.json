@@ -1,0 +1,7 @@
+{
+  "id": "local.aero",
+  "name": "Aero",
+  "hasScreen": false,
+  "permissions": ["accessibility"],
+  "binary": "libAeroPlugin.dylib"
+}
