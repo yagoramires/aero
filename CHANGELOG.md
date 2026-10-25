@@ -15,6 +15,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Se o NeyHub já roda o Aero, o avulso avisa (um aviso só, o do Aero), sai dos itens de login e fecha, para não encaixar duas vezes.
 - O build exige o certificado "Aero Local Signing"; não assina mais ad-hoc.
 
+### Corrigido
+- No monitor de cima de dois empilhados, arrastar até embaixo não encaixava: o cursor passava direto pro monitor de baixo. Agora os últimos pixels antes dele contam como borda, e a borda de baixo encaixa no quadrante do lado do cursor (antes, só nos cantos).
+
 ## [0.4.1] - 2026-10-22
 
 ### Corrigido

@@ -9,6 +9,7 @@ extension AeroApp {
         hotkeyFilter()
         popover()
         stopped()
+        bottomEdge()
     }
 
     /// Suite temporária no lugar do `.standard`; o chamador apaga. Nome fixo: não junta um plist por rodada.
@@ -96,5 +97,19 @@ extension AeroApp {
         precondition(app.hotkeys.actions.isEmpty)
         precondition(app.hotkeys.handle(EventHotKeyID(signature: Hotkeys.signature, id: 1)) == OSStatus(eventNotHandledErr) && hits == 0)
         precondition(app.popoverState(for: nil).needsPermission)
+    }
+
+    /// Borda de baixo: quadrante do lado do cursor; com outro monitor encostado embaixo, vale a faixa
+    /// antes de o cursor atravessar (monitor de cima com o MacBook embaixo).
+    static func bottomEdge() {
+        let upper = Display(id: 2, frame: CGRect(x: 0, y: -1080, width: 1920, height: 1080), visible: CGRect(x: 0, y: -1050, width: 1920, height: 1050))
+        let lower = Display(id: 1, frame: CGRect(x: 0, y: 0, width: 1920, height: 1080), visible: CGRect(x: 0, y: 30, width: 1920, height: 1050))
+        let both = [lower, upper]
+        func zone(_ x: CGFloat, _ y: CGFloat) -> SnapZone? { SnapZone.detect(at: CGPoint(x: x, y: y), among: both)?.0 }
+        precondition(zone(1500, -2) == .bottomRight && zone(300, -6) == .bottomLeft, "borda encostada no monitor de baixo")
+        precondition(zone(1500, -20) == nil, "longe da borda")
+        precondition(zone(1000, 1079) == .bottomRight && zone(900, 1079) == .bottomLeft, "borda livre: lado do cursor")
+        precondition(zone(1000, 1070) == nil, "borda livre só nos últimos px")
+        precondition(zone(1919, -500) == .right && zone(0, -1000) == .topLeft, "laterais seguem iguais")
     }
 }

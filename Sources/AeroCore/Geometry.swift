@@ -118,12 +118,12 @@ enum SnapZone: String {
     }
 
     /// Zona sob o cursor durante um arraste, quando ele encosta numa borda que não dá pra outro
-    /// monitor (ou na barra de menu). Igual ao Windows: lateral = metade, canto = quadrante, topo = maximizar.
-    static func detect(at p: CGPoint) -> (SnapZone, Display)? {
-        let displays = Display.all
+    /// monitor (ou na barra de menu). Igual ao Windows: lateral = metade, canto = quadrante, topo = maximizar;
+    /// embaixo, o quadrante do lado do cursor.
+    static func detect(at p: CGPoint, among displays: [Display] = Display.all) -> (SnapZone, Display)? {
         guard let d = displays.first(where: { $0.frame.contains(p) }) else { return nil }
         let f = d.frame
-        let edge: CGFloat = 3, corner: CGFloat = 100
+        let edge: CGFloat = 3, sharedEdge: CGFloat = 8, corner: CGFloat = 100
         func open(_ x: CGFloat, _ y: CGFloat) -> Bool {
             !displays.contains { $0.frame.contains(CGPoint(x: x, y: y)) }
         }
@@ -132,15 +132,15 @@ enum SnapZone: String {
         // A faixa da barra de menu também conta como topo: com um monitor empilhado em cima, o
         // cursor passaria direto pra ele e nunca daria pra maximizar arrastando.
         let atTop = (p.y <= f.minY + edge && open(p.x, f.minY - 1)) || p.y < d.visible.minY
-        let atBottom = p.y >= f.maxY - 1 - edge && open(p.x, f.maxY + 1)
+        // Borda de baixo encostada noutro monitor: o cursor atravessa, então vale a faixa logo antes dela.
+        let atBottom = p.y >= f.maxY - 1 - (open(p.x, f.maxY + 1) ? edge : sharedEdge)
         let nearTop = p.y < f.minY + corner, nearBottom = p.y > f.maxY - corner
         let nearLeft = p.x < f.minX + corner, nearRight = p.x > f.maxX - corner
 
         if atLeft { return (nearTop ? .topLeft : nearBottom ? .bottomLeft : .left, d) }
         if atRight { return (nearTop ? .topRight : nearBottom ? .bottomRight : .right, d) }
         if atTop { return (nearLeft ? .topLeft : nearRight ? .topRight : .maximize, d) }
-        if atBottom && nearLeft { return (.bottomLeft, d) }
-        if atBottom && nearRight { return (.bottomRight, d) }
+        if atBottom { return (p.x < f.midX ? .bottomLeft : .bottomRight, d) } // embaixo não há metade: quadrante do lado
         return nil
     }
 }

@@ -45,9 +45,10 @@ depuração fica só no seu Mac.
 
 ### Encaixe
 
-- **Arrastar até a borda**: lateral = metade, canto = quadrante, topo = maximizar. Uma prévia
-  translúcida mostra onde a janela vai parar antes de você soltar. A faixa da barra de menu também
-  conta como topo, então funciona até com um monitor empilhado em cima do outro.
+- **Arrastar até a borda**: lateral = metade, canto = quadrante, topo = maximizar, embaixo = quadrante
+  de baixo do lado em que está o cursor. Uma prévia translúcida mostra onde a janela vai parar antes de
+  você soltar. Com monitores empilhados, a faixa da barra de menu conta como topo do monitor de baixo, e
+  os últimos pixels antes de passar pro monitor de baixo contam como borda de baixo do de cima.
 - **Snap Assist**: depois de encaixar, aparecem as outras janelas abertas pra ocupar o espaço livre
   (clique, ou setas + Return; Esc fecha). Ele continua oferecendo até a tela encher, e não aparece
   se o espaço já estiver ocupado.
