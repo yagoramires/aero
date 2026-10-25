@@ -14,6 +14,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Atualização automática sem perguntar: o Aero confere 5 s depois de abrir e a cada 6 h, baixa sozinho e troca a versão quando você fecha o app. Depois de atualizar, mostra as novidades uma vez. O item **Buscar atualizações…** saiu do menu.
 - Se o NeyHub já roda o Aero, o avulso avisa (um aviso só, o do Aero), sai dos itens de login e fecha, para não encaixar duas vezes.
 - O build exige o certificado "Aero Local Signing"; não assina mais ad-hoc.
+- Arrastar uma janela pro espaço livre ao lado de outra já encaixada mostra a prévia e encaixa ali (a coluna inteira se estiver livre, senão o quadrante). Com a tela vazia, nada muda.
 
 ### Corrigido
 - No monitor de cima de dois empilhados, arrastar até embaixo não encaixava: o cursor passava direto pro monitor de baixo. Agora os últimos pixels antes dele contam como borda, e a borda de baixo encaixa no quadrante do lado do cursor (antes, só nos cantos).

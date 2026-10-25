@@ -117,6 +117,18 @@ enum SnapZone: String {
         return ([.left, .right] + quarters).first { free.isSuperset(of: $0.cells) }
     }
 
+    /// Espaço livre sob o cursor quando a tela já tem algo encaixado: a coluna inteira se estiver
+    /// livre (metade), senão o quadrante. Tela vazia ou cheia: nada (largar solta, como sempre).
+    static func hole(at p: CGPoint, in v: CGRect, free: Set<Cell>) -> SnapZone? {
+        guard !free.isEmpty, free.count < 4, v.contains(p) else { return nil }
+        let left = p.x < v.midX, top = p.y < v.midY
+        let cell: Cell = top ? (left ? .topLeft : .topRight) : (left ? .bottomLeft : .bottomRight)
+        guard free.contains(cell) else { return nil }
+        let half: SnapZone = left ? .left : .right
+        if free.isSuperset(of: half.cells) { return half }
+        return top ? (left ? .topLeft : .topRight) : (left ? .bottomLeft : .bottomRight)
+    }
+
     /// Zona sob o cursor durante um arraste, quando ele encosta numa borda que não dá pra outro
     /// monitor (ou na barra de menu). Igual ao Windows: lateral = metade, canto = quadrante, topo = maximizar;
     /// embaixo, o quadrante do lado do cursor.

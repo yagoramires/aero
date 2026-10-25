@@ -10,6 +10,7 @@ extension AeroApp {
         popover()
         stopped()
         bottomEdge()
+        holes()
     }
 
     /// Suite temporária no lugar do `.standard`; o chamador apaga. Nome fixo: não junta um plist por rodada.
@@ -111,5 +112,21 @@ extension AeroApp {
         precondition(zone(1000, 1079) == .bottomRight && zone(900, 1079) == .bottomLeft, "borda livre: lado do cursor")
         precondition(zone(1000, 1070) == nil, "borda livre só nos últimos px")
         precondition(zone(1919, -500) == .right && zone(0, -1000) == .topLeft, "laterais seguem iguais")
+    }
+
+    /// Arrastar pro espaço livre ao lado de uma janela encaixada encaixa nele; tela vazia, não.
+    static func holes() {
+        let v = CGRect(x: 0, y: -1050, width: 1920, height: 1050) // monitor de cima, área visível
+        let all = Set(Cell.allCases)
+        func hole(_ x: CGFloat, _ y: CGFloat, free: Set<Cell>) -> SnapZone? { SnapZone.hole(at: CGPoint(x: x, y: y), in: v, free: free) }
+        let rightTopTaken = all.subtracting([.topRight])
+        precondition(hole(1440, -465, free: rightTopTaken) == .bottomRight, "embaixo da janela de cima à direita")
+        precondition(hole(1440, -900, free: rightTopTaken) == nil, "em cima da própria janela ocupada")
+        precondition(hole(400, -300, free: rightTopTaken) == .left, "coluna da esquerda inteira livre vira metade")
+        let rightTaken = all.subtracting([.topRight, .bottomRight])
+        precondition(hole(400, -900, free: rightTaken) == .left && hole(1500, -300, free: rightTaken) == nil, "metade direita ocupada")
+        precondition(hole(1440, -465, free: all) == nil, "tela vazia: largar solta, sem encaixar")
+        precondition(hole(1440, -465, free: []) == nil, "tela cheia")
+        precondition(hole(1440, 200, free: rightTopTaken) == nil, "fora do monitor")
     }
 }
