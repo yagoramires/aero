@@ -11,7 +11,7 @@ Rectangle, Tiles e o encaixe nativo do macOS encaixam janelas, mas deixam de for
 1. Baixe o `Aero-x.y.z.dmg` (ou o `.zip`) na [página de releases](https://github.com/yagoramires/aero/releases/latest) e arraste o **Aero.app** pra pasta **Aplicativos**.
 2. Abra o Aero. Como ele não é assinado com um certificado pago da Apple, na primeira vez o macOS avisa que não conseguiu verificar o desenvolvedor. Clique com o botão direito no app → **Abrir**, ou vá em **Ajustes do Sistema → Privacidade e Segurança**, role até o fim e clique em **Abrir Mesmo Assim**. Pelo Terminal também resolve: `xattr -dr com.apple.quarantine /Applications/Aero.app`
 3. Dê a permissão de Acessibilidade quando ele pedir (veja **Permissões**).
-4. Opcional: no menu do Aero, marque **Abrir ao iniciar sessão**.
+4. Opcional: no painel do ícone do Aero, ligue **Abrir ao iniciar sessão**.
 
 **Feche outros gerenciadores de janelas** (Rectangle, Tiles, Magnet...), porque eles usam os mesmos atalhos e o mesmo arraste. Se o encaixe nativo do macOS estiver ligado, desligue em **Ajustes do Sistema → Mesa e Dock → Janelas → Arrastar janelas para as bordas da tela**.
 
@@ -19,11 +19,11 @@ Requer macOS 14 ou mais novo. Roda nativo em Apple Silicon e Intel. Também dá 
 
 ### Pelo NeyHub
 
-Quem usa o [NeyHub](https://github.com/yagoramires/neyhub) pode instalar o Aero pela Loja dele (o `Aero-x.y.z.neyplugin` do release). Aí o Aero roda dentro do NeyHub: o encaixe e o menu da barra são os mesmos, mas a Acessibilidade é dada ao NeyHub (pela tela **Permissões**), o NeyHub cuida do login, das atualizações e de mostrar ou esconder o ícone, e o menu do Aero não tem **Abrir ao iniciar sessão** nem **Sair**. Feche o Aero avulso antes: se o NeyHub já roda o Aero, o avulso avisa (um aviso só), sai dos itens de login e fecha.
+Quem usa o [NeyHub](https://github.com/yagoramires/neyhub) pode instalar o Aero pela Loja dele (o `Aero-x.y.z.neyplugin` do release). Aí o Aero roda dentro do NeyHub: o encaixe e o painel do ícone são os mesmos, mas a Acessibilidade é dada ao NeyHub (pela tela **Permissões**), o NeyHub cuida do login, das atualizações e de mostrar ou esconder o ícone, e o painel do Aero não tem **Abrir ao iniciar sessão**, **Sair**, **Configurações…** nem a linha **Atualização pronta**. Feche o Aero avulso antes: se o NeyHub já roda o Aero, o avulso avisa (um aviso só), sai dos itens de login e fecha.
 
 ### Desinstalar
 
-1. No menu do Aero, desmarque **Abrir ao iniciar sessão** e clique em **Sair**.
+1. No painel do ícone do Aero, desligue **Abrir ao iniciar sessão** e clique em **Sair**.
 2. Apague o **Aero.app** de Aplicativos. Pelo NeyHub, é só desinstalar no card do Aero: o encaixe para na hora.
 3. Em **Ajustes do Sistema → Privacidade e Segurança → Acessibilidade**, remova o Aero da lista.
 4. Opcional, pra apagar o estado salvo e os logs:
@@ -76,15 +76,19 @@ Clique no ícone do Aero na barra de menu. Abre um painel escuro com a versão e
 | Atalhos em uso por outro app | Aparece quando outro app (Rectangle?) segura algum `⌘` + seta. |
 | Atualização pronta — entra ao sair | Uma versão nova já foi baixada e entra quando você fechar o Aero. Não aparece dentro do NeyHub. |
 | Abrir ao iniciar sessão | Liga o Aero junto com o Mac. Não aparece dentro do NeyHub. |
-| Ajuda ▾ | Mostra a versão instalada, abre o log de depuração e reporta problemas. |
+| Ajuda ▾ | Mostra a versão instalada, abre o log de depuração, reporta problemas e, fora do NeyHub, abre as **Configurações…**. |
 | Sair | Fecha o Aero. Não aparece dentro do NeyHub (fecharia o NeyHub inteiro). |
 
 ### Problemas
 
-Em **Ajuda → Reportar problema…** no menu, o Aero abre uma issue no GitHub já com a versão, o macOS
+Em **Ajuda → Reportar problema…** no painel, o Aero abre uma issue no GitHub já com a versão, o macOS
 e os monitores preenchidos, e mostra no Finder o log pra você anexar. O log fica em
 `~/Library/Logs/Aero/aero.log` e só registra as decisões do app (qual janela foi arrastada, pra qual
 zona, por que um encaixe foi esquecido), nunca o conteúdo das janelas.
+
+Se o ícone sumiu e você não acha as configurações, dá pra escondê-lo ou trazê-lo de volta pelo Terminal
+(feche e reabra o Aero depois): `defaults write local.aero presence.menuBar -bool false` esconde,
+`-bool true` mostra.
 
 ### Limitações
 
@@ -113,7 +117,7 @@ selecionar até lá. No Finder, `⌘↑`/`⌘↓` deixam de navegar entre pastas
 
 O Aero não tem temas e roda só na barra de menus, sem janela. A única escolha de exibição é mostrar ou esconder o ícone; o encaixe e os atalhos continuam funcionando com ele escondido.
 
-- **Configurações**: com o ícone escondido, abra o Aero de novo pelo Finder (ou Spotlight) e a janela de configurações aparece. Ela só mostra o estado: o interruptor **Mostrar na barra de menus**, se a Acessibilidade foi concedida, a tabela de atalhos e os botões **Mostrar log de depuração** e **Reportar problema…**. Não há outras opções.
+- **Configurações**: no painel do ícone, **Ajuda ▾ → Configurações…**; com o ícone escondido, abra o Aero de novo pelo Finder (ou Spotlight) e a mesma janela aparece. O interruptor **Mostrar na barra de menus** fica nela. A janela só mostra o estado: o interruptor **Mostrar na barra de menus**, se a Acessibilidade foi concedida, a tabela de atalhos e os botões **Mostrar log de depuração** e **Reportar problema…**. Não há outras opções.
 - **Dentro do NeyHub**: as configurações ficam no card do Aero, que não ganha item na barra lateral, e sem o interruptor do ícone (quem mostra ou esconde é o NeyHub).
 
 ## Atualizações
@@ -167,6 +171,8 @@ O miolo fica em `Sources/AeroCore` e é o mesmo no app avulso e no plugin do Ney
 
 As cascas: `Sources/Aero` (app avulso: confere se o NeyHub já roda o Aero, atualização e novidades
 do NeyKitApp) e `Sources/AeroPlugin` (o `libAeroPlugin.dylib` que o NeyHub carrega; linka só o NeyKit).
+O `Info.plist` declara `NeyHubAware = true` porque o avulso chama `HubCheck.leaveForHub` ao abrir: com essa
+chave o NeyHub não mostra o alerta dele quando o avulso abre (só declare em app que faz essa checagem).
 
 ### Depuração
 

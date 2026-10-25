@@ -9,6 +9,7 @@ public enum Snapshots {
         let sample = PopoverState(version: "0.5.0", hosted: false, needsPermission: false, hotkeysBusy: false, hasWindow: true,
                                   neighbors: [.up], updateReady: true, loginItem: true)
         save(PopoverView(state: sample) { _ in }, as: "aero-popover.png", in: folder)
+        save(PopoverView(state: sample, help: true) { _ in }, as: "aero-popover-ajuda.png", in: folder)
         var blocked = sample
         blocked.needsPermission = true
         blocked.updateReady = false

@@ -16,11 +16,13 @@ struct PopoverState {
     var loginItem: Bool?
 
     var showsQuit: Bool { !hosted }
+    /// Hospedado as configurações ficam no card do NeyHub.
+    var showsSettings: Bool { !hosted }
     /// Hospedado quem atualiza é o NeyHub.
     var showsUpdate: Bool { updateReady && !hosted }
 }
 
-enum PopoverAction { case snap(SnapZone), restore, move(Direction), grant, showLog, report, quit, loginItem }
+enum PopoverAction: Equatable { case snap(SnapZone), restore, move(Direction), grant, showLog, report, quit, loginItem, settings }
 
 extension Grafite {
     // O Grafite não tem cor de alerta; estas vêm do mockup aprovado.
@@ -32,7 +34,13 @@ extension Grafite {
 struct PopoverView: View {
     let state: PopoverState
     let act: (PopoverAction) -> Void
-    @ViewState private var help = false
+    @ViewState private var help: Bool
+
+    /// `help`: Ajuda já aberta (só o --snapshots usa).
+    init(state: PopoverState, help: Bool = false, act: @escaping (PopoverAction) -> Void) {
+        self.state = state; self.act = act
+        _help = ViewState(wrappedValue: help)
+    }
 
     private struct Tile { let short: String, title: String, action: PopoverAction, key: String, area: CGRect }
     private static let tiles = [
@@ -130,7 +138,8 @@ struct PopoverView: View {
             }
             if help {
                 Text("Aero \(state.version)").font(.system(size: 10)).foregroundStyle(Grafite.muted).padding(.top, 2)
-                HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if state.showsSettings { Chip(title: "Configurações…") { act(.settings) } }
                     Chip(title: "Mostrar log de depuração") { act(.showLog) }
                     Chip(title: "Reportar problema…") { act(.report) }
                 }

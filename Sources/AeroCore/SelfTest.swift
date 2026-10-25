@@ -63,8 +63,8 @@ extension AeroApp {
             return app.popoverState(for: nil)
         }
         let hosted = state(hosted: true), alone = state(hosted: false)
-        precondition(!hosted.showsQuit && hosted.loginItem == nil && !hosted.showsUpdate, "\(hosted)")
-        precondition(alone.showsQuit && alone.loginItem != nil && alone.showsUpdate, "\(alone)")
+        precondition(!hosted.showsQuit && hosted.loginItem == nil && !hosted.showsUpdate && !hosted.showsSettings, "\(hosted)")
+        precondition(alone.showsQuit && alone.loginItem != nil && alone.showsUpdate && alone.showsSettings, "\(alone)")
         precondition(hosted.version == "9.8.7" && alone.version == "9.8.7")
         precondition(!alone.hasWindow && alone.neighbors.isEmpty)
         // Sem start() o arrasto não foi liberado: mostra o pedido de permissão.

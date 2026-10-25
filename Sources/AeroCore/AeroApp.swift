@@ -22,6 +22,7 @@ public final class AeroApp: NSObject {
     /// Janela em foco no clique do ícone: abrir o popover pode trocar o app em foco.
     private var target: Window?
     private var outsideClicks: Any?
+    private var settingsWindow: NSWindow?
     /// Hospedado: o NeyHub liga à tela de Permissões dele (a Acessibilidade é do NeyHub).
     public var onOpenPermissions: (() -> Void)?
     /// Avulso: o Updater já preparou uma versão, que entra quando o app fechar.
@@ -63,6 +64,7 @@ public final class AeroApp: NSObject {
         if let debugObserver { DistributedNotificationCenter.default().removeObserver(debugObserver) }
         debugObserver = nil
         setMenuBarVisible(false)
+        removeOutsideClicks()
         debugLog("parou")
     }
 
@@ -89,6 +91,20 @@ public final class AeroApp: NSObject {
             trusted: { AXIsProcessTrusted() },
             onMenuBar: { [weak self] visible in self?.saveMenuBar(visible) },
             act: { [weak self] in self?.perform($0) }))
+    }
+
+    /// Janela de configurações do avulso: Ajuda → Configurações… ou reabrir pelo Finder com o ícone escondido.
+    public func showSettings() {
+        if settingsWindow == nil {
+            let window = NSWindow(contentViewController: makeSettings())
+            window.title = "Aero"
+            window.appearance = NSAppearance(named: .darkAqua)
+            window.isReleasedWhenClosed = false
+            settingsWindow = window
+        }
+        settingsWindow?.center()
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     /// Avulso: no NeyHub quem guarda a presença é o NeyHub.
@@ -257,7 +273,9 @@ extension AeroApp: NSPopoverDelegate {
         popover.contentViewController?.view.window?.makeKey()
     }
 
-    public func popoverDidClose(_ notification: Notification) {
+    public func popoverDidClose(_ notification: Notification) { removeOutsideClicks() }
+
+    private func removeOutsideClicks() {
         if let outsideClicks { NSEvent.removeMonitor(outsideClicks) }
         outsideClicks = nil
     }
@@ -278,6 +296,8 @@ extension AeroApp: NSPopoverDelegate {
 
     func perform(_ action: PopoverAction) {
         let window = target
+        // Hospedado o popover não mostra login, Sair nem Configurações; a guarda é defesa extra (fecharia ou mexeria no NeyHub).
+        if hosted, [.loginItem, .quit, .settings].contains(action) { return }
         if case .loginItem = action { return toggleLoginItem() }
         popover.performClose(nil)
         switch action {
@@ -288,6 +308,7 @@ extension AeroApp: NSPopoverDelegate {
         case .showLog: showLog()
         case .report: reportProblem()
         case .quit: NSApp.terminate(nil)
+        case .settings: showSettings()
         case .loginItem: break
         }
         // O popover ativou o Aero (ou o NeyHub): devolve o foco para a janela que foi mexida.

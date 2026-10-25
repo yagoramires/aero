@@ -7,7 +7,6 @@ import NeyKitApp
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var aero: AeroApp?
     private var updater: Updater?
-    private var settings: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if HubCheck.isHosted(id: "local.aero") && HubCheck.leaveForHub(id: "local.aero", name: "Aero") { return }
@@ -35,16 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Aberto de novo pelo Finder com o ícone escondido: único jeito de chegar às configurações.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         guard let aero, !Presence.load(.standard, hasScreen: false).menuBar else { return true }
-        if settings == nil {
-            let window = NSWindow(contentViewController: aero.makeSettings())
-            window.title = "Aero"
-            window.appearance = NSAppearance(named: .darkAqua)
-            window.isReleasedWhenClosed = false
-            settings = window
-        }
-        settings?.center()
-        NSApp.activate(ignoringOtherApps: true)
-        settings?.makeKeyAndOrderFront(nil)
+        aero.showSettings()
         return false
     }
 }
