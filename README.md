@@ -1,30 +1,45 @@
-<p align="center">
-  <img src="docs/icon.png" width="128" alt="Ícone do Aero">
-</p>
+# Aero
 
-<h1 align="center">Aero</h1>
+Gerenciador de janelas para macOS que funciona como o do Windows: arraste até a borda, escolha a próxima janela e pronto, sem tela de configuração.
 
-<p align="center">
-  Gerenciador de janelas para macOS que funciona como o do Windows.<br>
-  Arraste até a borda, escolha a próxima janela e pronto, sem tela de configuração.
-</p>
+[Baixar a última versão](https://github.com/yagoramires/aero/releases/latest) · [Reportar problema](https://github.com/yagoramires/aero/issues/new)
 
-<p align="center">
-  <a href="https://github.com/yagoramires/aero/releases/latest"><b>Baixar a última versão</b></a>
-  ·
-  <a href="https://github.com/yagoramires/aero/issues/new">Reportar problema</a>
-</p>
+Rectangle, Tiles e o encaixe nativo do macOS encaixam janelas, mas deixam de fora o **Snap Assist** (escolher a janela que vai ocupar o espaço que sobrou), a **divisória compartilhada** entre janelas lado a lado e a janela **voltar ao tamanho de antes** quando você tira ela do encaixe. O Aero faz isso e não tem nenhuma opção pra configurar.
 
----
+## Instalar
 
-## Por que existe
+1. Baixe o `Aero-x.y.z.zip` na [página de releases](https://github.com/yagoramires/aero/releases/latest), descompacte e arraste o **Aero.app** pra pasta **Aplicativos**.
+2. Abra o Aero. Como ele não é assinado com um certificado pago da Apple, na primeira vez o macOS avisa que não conseguiu verificar o desenvolvedor. Clique com o botão direito no app → **Abrir**, ou vá em **Ajustes do Sistema → Privacidade e Segurança**, role até o fim e clique em **Abrir Mesmo Assim**. Pelo Terminal também resolve: `xattr -dr com.apple.quarantine /Applications/Aero.app`
+3. Dê a permissão de Acessibilidade quando ele pedir (veja **Permissões**).
+4. Opcional: no menu do Aero, marque **Abrir ao iniciar sessão**.
 
-Rectangle, Tiles e o encaixe nativo do macOS encaixam janelas, mas deixam de fora o que torna o
-Windows prático no dia a dia: o **Snap Assist** (escolher a janela que vai ocupar o espaço que sobrou),
-a **divisória compartilhada** entre janelas lado a lado e a janela **voltar ao tamanho de antes**
-quando você tira ela do encaixe. O Aero faz isso e não tem nenhuma opção pra configurar.
+**Feche outros gerenciadores de janelas** (Rectangle, Tiles, Magnet...), porque eles usam os mesmos atalhos e o mesmo arraste. Se o encaixe nativo do macOS estiver ligado, desligue em **Ajustes do Sistema → Mesa e Dock → Janelas → Arrastar janelas para as bordas da tela**.
 
-## O que ele faz
+Requer macOS 14 ou mais novo. Roda nativo em Apple Silicon e Intel. Também dá pra compilar do código (veja **Build local**).
+
+Instalador `.dmg` e instalação pelo NeyHub chegam na próxima versão.
+
+### Desinstalar
+
+1. No menu do Aero, desmarque **Abrir ao iniciar sessão** e clique em **Sair**.
+2. Apague o **Aero.app** de Aplicativos.
+3. Em **Ajustes do Sistema → Privacidade e Segurança → Acessibilidade**, remova o Aero da lista.
+4. Opcional, pra apagar o estado salvo e os logs:
+   `defaults delete local.aero; rm -rf ~/Library/Logs/Aero`
+
+## Permissões
+
+- **Acessibilidade** (Ajustes do Sistema → Privacidade e Segurança → Acessibilidade → Aero): necessária pra mover e redimensionar janelas de outros apps. O Aero começa a funcionar sozinho assim que a permissão é dada.
+- Os atalhos globais usam Carbon e não precisam de permissão extra.
+- Não usa Gravação de Tela: o Snap Assist mostra ícone e título das janelas, não miniaturas.
+
+### Privacidade
+
+O Aero não coleta nem envia nada sobre você ou suas janelas. A única conexão de rede é a consulta à
+API pública do GitHub (`api.github.com`) pra saber se tem versão nova, e o download dela quando você
+aceita atualizar. O log de depuração fica só no seu Mac.
+
+## Como usar
 
 ### Encaixe
 
@@ -47,7 +62,34 @@ quando você tira ela do encaixe. O Aero faz isso e não tem nenhuma opção pra
 - **Vários monitores**: arraste entre eles ou use os atalhos.
 - **Lembra dos encaixes** depois de reiniciar o app.
 
-### Atalhos
+### Menu da barra
+
+Clique no ícone do Aero na barra de menu:
+
+| Item | O que faz |
+| --- | --- |
+| Metades, quadrantes, Maximizar, Restaurar | Aplica a posição na janela em foco. Cada item tem o desenho da área que a janela vai ocupar e mostra o atalho, quando existe. |
+| Mover para outro monitor ▸ | Acima, abaixo, à esquerda ou à direita. Só ficam ativas as direções que têm monitor. |
+| Abrir ao iniciar sessão | Liga o Aero junto com o Mac. |
+| Buscar atualizações… | Confere se tem versão nova. Vira **Atualizar para a versão X…** quando já encontrou uma. |
+| Ajuda ▸ | Mostra a versão instalada, abre o log de depuração e reporta problemas. |
+
+### Problemas
+
+Em **Ajuda → Reportar problema…** no menu, o Aero abre uma issue no GitHub já com a versão, o macOS
+e os monitores preenchidos, e mostra no Finder o log pra você anexar. O log fica em
+`~/Library/Logs/Aero/aero.log` e só registra as decisões do app (qual janela foi arrastada, pra qual
+zona, por que um encaixe foi esquecido), nunca o conteúdo das janelas.
+
+### Limitações
+
+- O Snap Assist mostra ícone e título das janelas, não miniaturas (isso exigiria a permissão de
+  Gravação de Tela).
+- Na borda entre dois monitores lado a lado o cursor passa direto pro outro, então ali não dá pra
+  encaixar arrastando (o Windows faz igual). Use os atalhos ou o menu.
+- Só janelas do Space atual entram no Snap Assist.
+
+## Atalhos
 
 Mesma lógica do `Win` + setas do Windows:
 
@@ -62,68 +104,17 @@ Como no Windows, os atalhos valem no sistema todo. Por isso, enquanto o Aero est
 deixam de ir pro começo/fim da linha e do documento nos campos de texto, e `⇧⌘` + setas deixam de
 selecionar até lá. No Finder, `⌘↑`/`⌘↓` deixam de navegar entre pastas.
 
-### Menu da barra
+## Modos de exibição
 
-Clique no ícone do Aero na barra de menu:
+O Aero não tem tela de configuração nem temas. As únicas escolhas são as do menu da barra: o ícone do Aero na barra de menus, as posições com o desenho da área que a janela vai ocupar e **Abrir ao iniciar sessão**.
 
-| Item | O que faz |
-| --- | --- |
-| Metades, quadrantes, Maximizar, Restaurar | Aplica a posição na janela em foco. Cada item tem o desenho da área que a janela vai ocupar e mostra o atalho, quando existe. |
-| Mover para outro monitor ▸ | Acima, abaixo, à esquerda ou à direita. Só ficam ativas as direções que têm monitor. |
-| Abrir ao iniciar sessão | Liga o Aero junto com o Mac. |
-| Buscar atualizações… | Confere se tem versão nova. Vira **Atualizar para a versão X…** quando já encontrou uma. |
-| Ajuda ▸ | Mostra a versão instalada, abre o log de depuração e reporta problemas. |
+## Atualizações
 
-## Instalação
+Desde a 0.4.0, o Aero confere ao abrir (e uma vez por dia) se tem versão nova e oferece instalar: ele baixa, troca o app e reabre sozinho, e a permissão de Acessibilidade continua valendo. A versão baixada só é instalada se tiver sido assinada pelo mesmo certificado do app em uso. Também dá pra conferir pelo menu (**Buscar atualizações…**).
 
-1. Baixe o `Aero-x.y.z.zip` na [página de releases](https://github.com/yagoramires/aero/releases/latest),
-   descompacte e arraste o **Aero.app** pra pasta **Aplicativos**.
-2. Abra o Aero. Como ele não é assinado com um certificado pago da Apple, na primeira vez o macOS
-   avisa que não conseguiu verificar o desenvolvedor. Vá em **Ajustes do Sistema → Privacidade e
-   Segurança**, role até o fim e clique em **Abrir Mesmo Assim**.
-   Pelo Terminal também resolve: `xattr -dr com.apple.quarantine /Applications/Aero.app`
-3. Dê a permissão de **Acessibilidade** quando ele pedir (Ajustes do Sistema → Privacidade e
-   Segurança → Acessibilidade → Aero). Ela é necessária pra mover e redimensionar janelas de outros
-   apps. O Aero começa a funcionar sozinho assim que a permissão é dada.
-4. Opcional: no menu do Aero, marque **Abrir ao iniciar sessão**.
+Quem está na 0.1.0, 0.2.0 ou 0.3.0 precisa baixar a versão nova manualmente uma vez (é só substituir o Aero.app em Aplicativos). Daí em diante as atualizações chegam pelo próprio app.
 
-**Feche outros gerenciadores de janelas** (Rectangle, Tiles, Magnet...), porque eles usam os mesmos
-atalhos e o mesmo arraste. Se o encaixe nativo do macOS estiver ligado, desligue em **Ajustes do
-Sistema → Mesa e Dock → Janelas → Arrastar janelas para as bordas da tela**.
-
-Requer macOS 14 ou mais novo. Roda nativo em Apple Silicon e Intel.
-
-### Atualizações
-
-Desde a 0.4.0, o Aero confere ao abrir (e uma vez por dia) se tem versão nova e oferece instalar:
-ele baixa, troca o app e reabre sozinho, e a permissão de Acessibilidade continua valendo. A versão
-baixada só é instalada se tiver sido assinada pelo mesmo certificado do app em uso.
-
-Quem está na 0.1.0, 0.2.0 ou 0.3.0 precisa baixar a versão nova manualmente uma vez (é só substituir
-o Aero.app em Aplicativos). Daí em diante as atualizações chegam pelo próprio app.
-
-### Desinstalar
-
-1. No menu do Aero, desmarque **Abrir ao iniciar sessão** e clique em **Sair**.
-2. Apague o **Aero.app** de Aplicativos.
-3. Em **Ajustes do Sistema → Privacidade e Segurança → Acessibilidade**, remova o Aero da lista.
-4. Opcional, pra apagar o estado salvo e os logs:
-   `defaults delete local.aero; rm -rf ~/Library/Logs/Aero`
-
-## Privacidade
-
-O Aero não coleta nem envia nada sobre você ou suas janelas. A única conexão de rede é a consulta à
-API pública do GitHub (`api.github.com`) pra saber se tem versão nova, e o download dela quando você
-aceita atualizar. O log de depuração fica só no seu Mac.
-
-## Problemas
-
-Em **Ajuda → Reportar problema…** no menu, o Aero abre uma issue no GitHub já com a versão, o macOS
-e os monitores preenchidos, e mostra no Finder o log pra você anexar. O log fica em
-`~/Library/Logs/Aero/aero.log` e só registra as decisões do app (qual janela foi arrastada, pra qual
-zona, por que um encaixe foi esquecido), nunca o conteúdo das janelas.
-
-## Desenvolvimento
+## Build local
 
 ### Compilar
 
@@ -178,13 +169,9 @@ O release **precisa ser assinado com o mesmo certificado** das versões anterior
 instalados recusam a atualização automática. Antes de trocar de Mac, exporte o "Aero Local Signing"
 pelo app Acesso às Chaves (com a chave privada) e importe no Mac novo.
 
-## Limitações
+## Patch notes
 
-- O Snap Assist mostra ícone e título das janelas, não miniaturas (isso exigiria a permissão de
-  Gravação de Tela).
-- Na borda entre dois monitores lado a lado o cursor passa direto pro outro, então ali não dá pra
-  encaixar arrastando (o Windows faz igual). Use os atalhos ou o menu.
-- Só janelas do Space atual entram no Snap Assist.
+Veja o [CHANGELOG](CHANGELOG.md).
 
 ## Licença
 
