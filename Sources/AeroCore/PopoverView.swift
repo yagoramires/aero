@@ -22,7 +22,7 @@ struct PopoverState {
     var showsUpdate: Bool { updateReady && !hosted }
 }
 
-enum PopoverAction: Equatable { case snap(SnapZone), restore, move(Direction), grant, showLog, report, quit, loginItem, settings }
+enum PopoverAction: Equatable { case snap(SnapZone), restore, move(Direction), grant, showLog, report, quit, loginItem, settings, relaunch }
 
 extension Grafite {
     // O Grafite não tem cor de alerta; estas vêm do mockup aprovado.
@@ -71,7 +71,13 @@ struct PopoverView: View {
 
             if state.needsPermission { permission } else { snapping }
             if state.hotkeysBusy { line("Atalhos em uso por outro app (Rectangle?)", Grafite.warn) }
-            if state.showsUpdate { line("Atualização pronta — entra ao sair", Grafite.accent) }
+            if state.showsUpdate {
+                HStack {
+                    line("Atualização pronta — entra ao sair", Grafite.accent)
+                    Spacer()
+                    GPill(title: "Reiniciar agora") { act(.relaunch) }.padding(.top, 8).accessibilityLabel("Reiniciar o Aero agora")
+                }
+            }
             if let on = state.loginItem {
                 HStack {
                     Text("Abrir ao iniciar sessão").font(.system(size: 11))

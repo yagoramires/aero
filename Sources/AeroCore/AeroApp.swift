@@ -27,6 +27,8 @@ public final class AeroApp: NSObject {
     public var onOpenPermissions: (() -> Void)?
     /// Avulso: o Updater já preparou uma versão, que entra quando o app fechar.
     public var updateReady = false
+    /// Avulso: "Reiniciar agora" do popover; a casca liga ao `Updater.relaunchNow`.
+    public var onRelaunch: (() -> Void)?
 
     public init(defaults: UserDefaults, hosted: Bool, version: String) {
         self.defaults = defaults
@@ -297,7 +299,7 @@ extension AeroApp: NSPopoverDelegate {
     func perform(_ action: PopoverAction) {
         let window = target
         // Hospedado o popover não mostra login, Sair nem Configurações; a guarda é defesa extra (fecharia ou mexeria no NeyHub).
-        if hosted, [.loginItem, .quit, .settings].contains(action) { return }
+        if hosted, [.loginItem, .quit, .settings, .relaunch].contains(action) { return }
         if case .loginItem = action { return toggleLoginItem() }
         popover.performClose(nil)
         switch action {
@@ -309,6 +311,7 @@ extension AeroApp: NSPopoverDelegate {
         case .report: reportProblem()
         case .quit: NSApp.terminate(nil)
         case .settings: showSettings()
+        case .relaunch: onRelaunch?()
         case .loginItem: break
         }
         // O popover ativou o Aero (ou o NeyHub): devolve o foco para a janela que foi mexida.

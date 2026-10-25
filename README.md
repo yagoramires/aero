@@ -74,7 +74,7 @@ Clique no ícone do Aero na barra de menu. Abre um painel escuro com a versão e
 | Mover para outro monitor | Acima, abaixo, à esquerda ou à direita. Só ficam ativas as direções que têm monitor. |
 | Precisa de Acessibilidade · Conceder | Aparece no lugar dos blocos enquanto falta a permissão. **Conceder** abre os Ajustes (no NeyHub, a tela **Permissões**). |
 | Atalhos em uso por outro app | Aparece quando outro app (Rectangle?) segura algum `⌘` + seta. |
-| Atualização pronta — entra ao sair | Uma versão nova já foi baixada e entra quando você fechar o Aero. Não aparece dentro do NeyHub. |
+| Atualização pronta — entra ao sair | Uma versão nova já foi baixada e entra quando você fechar o Aero. **Reiniciar agora** troca e reabre na hora. Não aparece dentro do NeyHub. |
 | Abrir ao iniciar sessão | Liga o Aero junto com o Mac. Não aparece dentro do NeyHub. |
 | Ajuda ▾ | Mostra a versão instalada, abre o log de depuração, reporta problemas e, fora do NeyHub, abre as **Configurações…**. |
 | Sair | Fecha o Aero. Não aparece dentro do NeyHub (fecharia o NeyHub inteiro). |
@@ -122,7 +122,7 @@ O Aero não tem temas e roda só na barra de menus, sem janela. A única escolha
 
 ## Atualizações
 
-Desde a 0.5.0, o Aero confere 5 s depois de abrir e a cada 6 h se tem versão nova, baixa sozinho e só troca o app quando você fecha o Aero: nunca reinicia no meio do uso. Na próxima abertura, mostra uma vez a janela **Novidades** com o que mudou. A versão baixada só é instalada se tiver sido assinada pelo mesmo certificado do app em uso, então a permissão de Acessibilidade continua valendo. Dentro do NeyHub, quem atualiza é o NeyHub.
+Desde a 0.5.0, o Aero confere 5 s depois de abrir e a cada 6 h se tem versão nova, baixa sozinho e só troca o app quando você fecha o Aero (ou clica em **Reiniciar agora** no painel): nunca reinicia sozinho no meio do uso. Na próxima abertura, mostra uma vez a janela **Novidades** com o que mudou. A versão baixada só é instalada se tiver sido assinada pelo mesmo certificado do app em uso, então a permissão de Acessibilidade continua valendo. Dentro do NeyHub, quem atualiza é o NeyHub.
 
 Quem está na 0.4.x recebe a 0.5.0 pelo aviso de atualização de sempre. Quem está na 0.1.0, 0.2.0 ou 0.3.0 precisa baixar a versão nova manualmente uma vez (é só substituir o Aero.app em Aplicativos).
 

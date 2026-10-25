@@ -21,10 +21,13 @@ extension AeroApp {
     static func defaultsInjected() {
         let (d, name) = tempDefaults()
         defer { d.removePersistentDomain(forName: name) }
-        // load() descarta ids de janelas que não existem: usa uma que existe (sempre há alguma no WindowServer).
-        let ids = (CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] ?? [])
-            .compactMap { $0[kCGWindowNumber as String] as? CGWindowID }
-        guard let id = ids.first.map(String.init) else { preconditionFailure("sem janelas no WindowServer") }
+        // load() descarta ids de janelas que não existem: usa uma que existe e não está na tela (sempre há alguma no
+        // WindowServer). Visível, o revive() a tiraria das adormecidas quando o app tem Acessibilidade.
+        func ids(_ options: CGWindowListOption) -> [CGWindowID] {
+            (CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []).compactMap { $0[kCGWindowNumber as String] as? CGWindowID }
+        }
+        let onScreen = Set(ids(.optionOnScreenOnly))
+        guard let id = ids(.optionAll).first(where: { !onScreen.contains($0) }).map(String.init) else { preconditionFailure("sem janela fora da tela no WindowServer") }
         // Frame que nenhuma janela real tem: a entrada fica adormecida, não encaixa nada.
         let sentinel = NSStringFromRect(NSRect(x: -77777, y: -77777, width: 3, height: 3))
         let entry = ["zone": SnapZone.left.rawValue, "restore": sentinel, "frame": sentinel]
@@ -69,6 +72,17 @@ extension AeroApp {
         precondition(!alone.hasWindow && alone.neighbors.isEmpty)
         // Sem start() o arrasto não foi liberado: mostra o pedido de permissão.
         precondition(alone.needsPermission && !alone.hotkeysBusy)
+
+        // "Reiniciar agora" fica na linha de atualização (só avulso); hospedado a ação não chega à casca.
+        for hosted in [true, false] {
+            let (d, name) = tempDefaults()
+            defer { d.removePersistentDomain(forName: name) }
+            let app = AeroApp(defaults: d, hosted: hosted, version: "9.8.7")
+            var relaunched = 0
+            app.onRelaunch = { relaunched += 1 }
+            app.perform(.relaunch)
+            precondition(relaunched == (hosted ? 0 : 1), "Reiniciar agora hospedado=\(hosted): \(relaunched)")
+        }
     }
 
     /// Desinstalar: depois do stop() nenhum atalho do Aero responde.
