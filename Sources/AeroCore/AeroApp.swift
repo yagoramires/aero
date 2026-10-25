@@ -1,5 +1,6 @@
 import AppKit
 import Carbon
+import NeyKit
 import ServiceManagement
 import SwiftUI
 
@@ -10,14 +11,21 @@ public final class AeroApp: NSObject {
     private let hosted: Bool
     private let manager: WindowManager
     private lazy var drag = DragSnapper(manager: manager)
-    private let hotkeys = Hotkeys()
+    let hotkeys = Hotkeys()
     private var statusItem: NSStatusItem?
     private var dragOK = false
     private var pendingHotkeys: [(key: Int, modifiers: Int, action: () -> Void)] = []
     private var timers: [Timer] = []
     private var debugObserver: NSObjectProtocol?
+    private let popover = NSPopover()
+    private var popoverHost: NSHostingController<PopoverView>?
+    /// Janela em foco no clique do ícone: abrir o popover pode trocar o app em foco.
+    private var target: Window?
+    private var outsideClicks: Any?
     /// Hospedado: o NeyHub liga à tela de Permissões dele (a Acessibilidade é do NeyHub).
     public var onOpenPermissions: (() -> Void)?
+    /// Avulso: o Updater já preparou uma versão, que entra quando o app fechar.
+    public var updateReady = false
 
     public init(defaults: UserDefaults, hosted: Bool, version: String) {
         self.defaults = defaults
@@ -50,6 +58,7 @@ public final class AeroApp: NSObject {
         pendingHotkeys = []
         hotkeys.unregisterAll()
         drag.stop()
+        dragOK = false
         manager.stop()
         if let debugObserver { DistributedNotificationCenter.default().removeObserver(debugObserver) }
         debugObserver = nil
@@ -60,18 +69,35 @@ public final class AeroApp: NSObject {
     /// false REMOVE o ícone; true cria com autosaveName "local.aero" (a posição na barra é lembrada).
     public func setMenuBarVisible(_ visible: Bool) {
         if !visible, let statusItem {
+            popover.performClose(nil)
             NSStatusBar.system.removeStatusItem(statusItem)
             self.statusItem = nil
         } else if visible, statusItem == nil {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
             item.autosaveName = "local.aero"
             item.button?.image = menuBarIcon()
+            item.button?.target = self
+            item.button?.action = #selector(togglePopover)
             statusItem = item
-            rebuildMenu()
         }
     }
 
-    public func makeSettings() -> NSViewController { NSHostingController(rootView: SettingsView()) }
+    public func makeSettings() -> NSViewController {
+        NSHostingController(rootView: SettingsView(
+            version: Log.version,
+            menuBar: hosted ? nil : Presence.load(defaults, hasScreen: false).menuBar,
+            trusted: { AXIsProcessTrusted() },
+            onMenuBar: { [weak self] visible in self?.saveMenuBar(visible) },
+            act: { [weak self] in self?.perform($0) }))
+    }
+
+    /// Avulso: no NeyHub quem guarda a presença é o NeyHub.
+    private func saveMenuBar(_ visible: Bool) {
+        var presence = Presence.load(defaults, hasScreen: false)
+        presence.menuBar = visible
+        presence.save(defaults)
+        setMenuBarVisible(visible)
+    }
 
     private func begin() {
         manager.load()
@@ -102,13 +128,7 @@ public final class AeroApp: NSObject {
         if pendingHotkeys.count != before || !pendingHotkeys.isEmpty {
             debugLog("atalhos: \(8 - pendingHotkeys.count) de 8 registrados")
         }
-        rebuildMenu()
-    }
-
-    private func rebuildMenu() {
-        let menu = NSMenu()
-        menu.delegate = self
-        statusItem?.menu = menu
+        if popover.isShown { popoverHost?.rootView = popoverView() }
     }
 
     /// Versão monocromática do ícone do app: metade cheia, quadrante cheio e quadrante vazio.
@@ -125,32 +145,6 @@ public final class AeroApp: NSObject {
         image.isTemplate = true
         image.accessibilityDescription = "Aero"
         return image
-    }
-
-    private func item(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
-        item.target = action == #selector(NSApplication.terminate(_:)) ? NSApp : self
-        return item
-    }
-
-    private func disabled(_ title: String) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.isEnabled = false
-        return item
-    }
-
-    @objc private func snapFocused(_ sender: NSMenuItem) {
-        guard let zone = sender.representedObject as? String else { return }
-        if zone == "restore" {
-            if let window = Window.focused() { manager.restore(window) }
-        } else if let zone = SnapZone(rawValue: zone) {
-            manager.snapFocused(to: zone)
-        }
-    }
-
-    @objc private func moveFocused(_ sender: NSMenuItem) {
-        guard let direction = sender.representedObject as? Direction else { return }
-        manager.moveToDisplay(direction)
     }
 
     @objc private func showLog() {
@@ -194,7 +188,7 @@ public final class AeroApp: NSObject {
         }
         // O macOS pode exigir aprovação manual em Ajustes → Geral → Itens de Início.
         if service.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
-        rebuildMenu()
+        if popover.isShown { popoverHost?.rootView = popoverView() }
     }
 
     /// Comandos de teste via scripts/debug.sh; só liga com
@@ -232,106 +226,74 @@ public final class AeroApp: NSObject {
     }
 }
 
-// MARK: Menu da barra
+// MARK: Popover da barra
 
-extension AeroApp: NSMenuDelegate {
-    /// Montado a cada abertura, pra refletir a janela em foco e os monitores daquele momento.
-    public func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.removeAllItems()
-        if !dragOK {
-            menu.addItem(item("Dar permissão de Acessibilidade…", #selector(openAccessibilitySettings)))
-            menu.addItem(.separator())
-        } else if !pendingHotkeys.isEmpty {
-            menu.addItem(disabled("Atalhos em uso por outro app (Rectangle?)"))
-            menu.addItem(.separator())
+extension AeroApp: NSPopoverDelegate {
+    @objc private func togglePopover() {
+        if popover.isShown { return popover.performClose(nil) }
+        guard let button = statusItem?.button else { return }
+        // Antes do show: o popover pode pegar o foco e aí a janela em foco seria a errada.
+        target = Window.focused()
+        if popoverHost == nil {
+            let host = NSHostingController(rootView: popoverView())
+            host.sizingOptions = .preferredContentSize
+            popoverHost = host
+            popover.contentViewController = host
+            popover.behavior = .transient
+            popover.appearance = NSAppearance(named: .darkAqua)
+            popover.delegate = self
+        } else {
+            popoverHost?.rootView = popoverView()
         }
-
-        let window = Window.focused()
-        let positions: [(String, String, String?, CGRect)] = [
-            ("Metade esquerda", SnapZone.left.rawValue, "←", CGRect(x: 0, y: 0, width: 0.5, height: 1)),
-            ("Metade direita", SnapZone.right.rawValue, "→", CGRect(x: 0.5, y: 0, width: 0.5, height: 1)),
-            ("Superior esquerdo", SnapZone.topLeft.rawValue, nil, CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5)),
-            ("Superior direito", SnapZone.topRight.rawValue, nil, CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5)),
-            ("Inferior esquerdo", SnapZone.bottomLeft.rawValue, nil, CGRect(x: 0, y: 0, width: 0.5, height: 0.5)),
-            ("Inferior direito", SnapZone.bottomRight.rawValue, nil, CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5)),
-            ("Maximizar", SnapZone.maximize.rawValue, "↑", CGRect(x: 0, y: 0, width: 1, height: 1)),
-            ("Restaurar", "restore", "↓", CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)),
-        ]
-        for (index, (title, zone, arrow, area)) in positions.enumerated() {
-            if index == 2 || index == 6 { menu.addItem(.separator()) }
-            let entry = NSMenuItem(title: title, action: window == nil ? nil : #selector(snapFocused(_:)), keyEquivalent: "")
-            entry.target = self
-            entry.representedObject = zone
-            entry.image = layoutIcon(area)
-            if let arrow { setArrowKey(entry, arrow, [.command]) }
-            menu.addItem(entry)
+        // App de barra não é ativo: sem isso o primeiro clique no popover pode não chegar.
+        NSApp.activate()
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        // O .transient sozinho não fecha quando o clique cai em outro app; um monitor global pega esse clique.
+        if outsideClicks == nil {
+            outsideClicks = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+                self?.popover.performClose(nil)
+            }
         }
+        popover.contentViewController?.view.window?.makeKey()
+    }
 
-        menu.addItem(.separator())
-        let move = NSMenuItem(title: "Mover para outro monitor", action: nil, keyEquivalent: "")
-        move.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: nil)
-        let submenu = NSMenu()
+    public func popoverDidClose(_ notification: Notification) {
+        if let outsideClicks { NSEvent.removeMonitor(outsideClicks) }
+        outsideClicks = nil
+    }
+
+    /// O que o popover mostra para a janela `window` (a capturada no clique).
+    func popoverState(for window: Window?) -> PopoverState {
         let from = window.map { Display.best(for: $0.frame) }
-        for (title, direction, arrow) in [("Acima", Direction.up, "↑"), ("Abaixo", .down, "↓"),
-                                          ("À esquerda", .left, "←"), ("À direita", .right, "→")] {
-            let available = from?.neighbor(direction) != nil
-            let entry = NSMenuItem(title: title, action: available ? #selector(moveFocused(_:)) : nil, keyEquivalent: "")
-            entry.target = self
-            entry.representedObject = direction
-            setArrowKey(entry, arrow, [.command, .shift])
-            submenu.addItem(entry)
-        }
-        move.submenu = submenu
-        move.isEnabled = Display.all.count > 1
-        menu.addItem(move)
-
-        menu.addItem(.separator())
-        if !hosted {
-            let login = item("Abrir ao iniciar sessão", #selector(toggleLoginItem))
-            login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-            menu.addItem(login)
-        }
-
-        let help = NSMenuItem(title: "Ajuda", action: nil, keyEquivalent: "")
-        let helpMenu = NSMenu()
-        helpMenu.addItem(disabled("Aero \(Log.version)"))
-        helpMenu.addItem(.separator())
-        helpMenu.addItem(item("Mostrar log de depuração", #selector(showLog)))
-        helpMenu.addItem(item("Reportar problema…", #selector(reportProblem)))
-        help.submenu = helpMenu
-        menu.addItem(help)
-
-        if !hosted {
-            menu.addItem(.separator())
-            menu.addItem(item("Sair", #selector(NSApplication.terminate(_:)), key: "q"))
-        }
+        let directions: [Direction] = [.up, .down, .left, .right]
+        return PopoverState(version: Log.version, hosted: hosted, needsPermission: !dragOK,
+                            hotkeysBusy: dragOK && !pendingHotkeys.isEmpty, hasWindow: window != nil,
+                            neighbors: Set(directions.filter { from?.neighbor($0) != nil }), updateReady: updateReady,
+                            loginItem: hosted ? nil : SMAppService.mainApp.status == .enabled)
     }
 
-    /// Mostra o atalho alinhado à direita, desenhado pelo sistema (⇧⌘ na ordem do macOS).
-    private func setArrowKey(_ item: NSMenuItem, _ arrow: String, _ modifiers: NSEvent.ModifierFlags) {
-        let keys: [String: Int] = ["←": NSLeftArrowFunctionKey, "→": NSRightArrowFunctionKey,
-                                   "↑": NSUpArrowFunctionKey, "↓": NSDownArrowFunctionKey]
-        guard let code = keys[arrow], let scalar = UnicodeScalar(code) else { return }
-        item.keyEquivalent = String(Character(scalar))
-        item.keyEquivalentModifierMask = modifiers
+    private func popoverView() -> PopoverView {
+        PopoverView(state: popoverState(for: target)) { [weak self] in self?.perform($0) }
     }
 
-    /// Desenho da tela com a área ocupada preenchida; `area` em frações, origem embaixo.
-    private func layoutIcon(_ area: CGRect) -> NSImage {
-        let image = NSImage(size: NSSize(width: 22, height: 16), flipped: false) { _ in
-            let screen = NSRect(x: 1.5, y: 1.5, width: 19, height: 13)
-            let outline = NSBezierPath(roundedRect: screen, xRadius: 2.5, yRadius: 2.5)
-            outline.lineWidth = 1.1
-            NSColor.black.setStroke()
-            outline.stroke()
-            let inner = screen.insetBy(dx: 1.8, dy: 1.8)
-            let fill = NSRect(x: inner.minX + area.minX * inner.width, y: inner.minY + area.minY * inner.height,
-                              width: area.width * inner.width, height: area.height * inner.height)
-            NSColor.black.setFill()
-            NSBezierPath(roundedRect: fill.insetBy(dx: 0.4, dy: 0.4), xRadius: 1, yRadius: 1).fill()
-            return true
+    func perform(_ action: PopoverAction) {
+        let window = target
+        if case .loginItem = action { return toggleLoginItem() }
+        popover.performClose(nil)
+        switch action {
+        case .snap(let zone): manager.snapFocused(to: zone, window: window)
+        case .restore: if let window { manager.restore(window) }
+        case .move(let direction): manager.moveToDisplay(direction, window: window)
+        case .grant: openAccessibilitySettings()
+        case .showLog: showLog()
+        case .report: reportProblem()
+        case .quit: NSApp.terminate(nil)
+        case .loginItem: break
         }
-        image.isTemplate = true
-        return image
+        // O popover ativou o Aero (ou o NeyHub): devolve o foco para a janela que foi mexida.
+        switch action {
+        case .snap, .restore, .move: window?.focus()
+        default: break
+        }
     }
 }

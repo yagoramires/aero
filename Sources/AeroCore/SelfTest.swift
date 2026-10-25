@@ -4,9 +4,11 @@ import Carbon
 /// `Aero --selftest`. Sem XCTest (só CommandLineTools). Nunca grava no `.standard`: é o domínio do Aero em uso.
 extension AeroApp {
     public static func selfTest() {
+        Log.enabled = false
         defaultsInjected()
         hotkeyFilter()
-        hostedMenu()
+        popover()
+        stopped()
     }
 
     /// Suite temporária no lugar do `.standard`; o chamador apaga. Nome fixo: não junta um plist por rodada.
@@ -50,19 +52,35 @@ extension AeroApp {
         precondition(hotkeys.handle(EventHotKeyID(signature: Hotkeys.signature, id: 1)) == noErr && hits == 1)
     }
 
-    /// Hospedado: sem "Abrir ao iniciar sessão" (é o login do NeyHub) nem "Sair" (fecharia o NeyHub); versão vem do init.
-    static func hostedMenu() {
-        func titles(hosted: Bool) -> [String] {
+    /// Hospedado: sem "Abrir ao iniciar sessão" (é o login do NeyHub), sem "Sair" (fecharia o NeyHub) e sem
+    /// a linha de atualização (quem atualiza é o NeyHub). Sem janela em foco os blocos ficam apagados.
+    static func popover() {
+        func state(hosted: Bool) -> PopoverState {
             let (d, name) = tempDefaults()
             defer { d.removePersistentDomain(forName: name) }
-            let menu = NSMenu()
-            AeroApp(defaults: d, hosted: hosted, version: "9.8.7").menuNeedsUpdate(menu)
-            return menu.items.flatMap { [$0.title] + ($0.submenu?.items.map(\.title) ?? []) }
+            let app = AeroApp(defaults: d, hosted: hosted, version: "9.8.7")
+            app.updateReady = true
+            return app.popoverState(for: nil)
         }
-        let hosted = titles(hosted: true), alone = titles(hosted: false)
-        precondition(!hosted.contains("Abrir ao iniciar sessão") && !hosted.contains("Sair"), "\(hosted)")
-        precondition(alone.contains("Abrir ao iniciar sessão") && alone.contains("Sair"), "\(alone)")
-        precondition(hosted.contains("Aero 9.8.7") && alone.contains("Aero 9.8.7"))
-        precondition(!(hosted + alone).contains { $0.contains("atualiza") }, "item de atualização ainda no menu")
+        let hosted = state(hosted: true), alone = state(hosted: false)
+        precondition(!hosted.showsQuit && hosted.loginItem == nil && !hosted.showsUpdate, "\(hosted)")
+        precondition(alone.showsQuit && alone.loginItem != nil && alone.showsUpdate, "\(alone)")
+        precondition(hosted.version == "9.8.7" && alone.version == "9.8.7")
+        precondition(!alone.hasWindow && alone.neighbors.isEmpty)
+        // Sem start() o arrasto não foi liberado: mostra o pedido de permissão.
+        precondition(alone.needsPermission && !alone.hotkeysBusy)
+    }
+
+    /// Desinstalar: depois do stop() nenhum atalho do Aero responde.
+    static func stopped() {
+        let (d, name) = tempDefaults()
+        defer { d.removePersistentDomain(forName: name) }
+        let app = AeroApp(defaults: d, hosted: true, version: "9.8.7")
+        var hits = 0
+        app.hotkeys.actions[1] = { hits += 1 }
+        app.stop()
+        precondition(app.hotkeys.actions.isEmpty)
+        precondition(app.hotkeys.handle(EventHotKeyID(signature: Hotkeys.signature, id: 1)) == OSStatus(eventNotHandledErr) && hits == 0)
+        precondition(app.popoverState(for: nil).needsPermission)
     }
 }

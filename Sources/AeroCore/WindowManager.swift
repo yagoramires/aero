@@ -278,15 +278,15 @@ final class WindowManager {
         }
     }
 
-    /// Encaixe escolhido no menu da barra, na janela em foco.
-    func snapFocused(to zone: SnapZone) {
-        guard let window = Window.focused() else { return NSSound.beep() }
+    /// Encaixe escolhido no menu da barra, na janela em foco (o popover passa a que capturou no clique).
+    func snapFocused(to zone: SnapZone, window: Window? = Window.focused()) {
+        guard let window else { return NSSound.beep() }
         snap(window, to: zone, on: Display.best(for: window.frame), assistDelay: 0.45)
     }
 
     /// ⌘⇧ + setas: leva a janela pro monitor vizinho, mantendo o encaixe ou a posição relativa.
-    func moveToDisplay(_ direction: Direction) {
-        guard let window = Window.focused() else { return NSSound.beep() }
+    func moveToDisplay(_ direction: Direction, window: Window? = Window.focused()) {
+        guard let window else { return NSSound.beep() }
         let from = Display.best(for: window.frame)
         guard let to = from.neighbor(direction, wrap: true) else { return }
         if let zone = state(of: window)?.zone {

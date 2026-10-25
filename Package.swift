@@ -31,6 +31,6 @@ let package = Package(
             swiftSettings: swift5
         ),
         // Plugin do NeyHub: nunca linka NeyKitApp (classes duplicadas no processo do NeyHub).
-        .target(name: "AeroPlugin", dependencies: ["AeroCore"], path: "Sources/AeroPlugin", swiftSettings: swift5),
+        .target(name: "AeroPlugin", dependencies: ["AeroCore", .product(name: "NeyKit", package: hub)], path: "Sources/AeroPlugin", swiftSettings: swift5),
     ]
 )

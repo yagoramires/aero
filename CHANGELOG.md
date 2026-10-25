@@ -7,11 +7,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 ### Adicionado
 - Instalação pelo NeyHub: o Aero também vem como plugin (`Aero-0.5.0.neyplugin`) e roda dentro do NeyHub, que pede a Acessibilidade na tela de Permissões dele. Desinstalar pelo NeyHub para o encaixe na hora.
 - Instalador `.dmg`, além do `.zip`.
-- Com o ícone da barra escondido, abrir o Aero de novo pelo Finder mostra as configurações.
+- Configurações: com o ícone da barra escondido, abrir o Aero de novo pelo Finder mostra a janela com o interruptor **Mostrar na barra de menus**, o estado da Acessibilidade, a tabela de atalhos e os botões de log e de reportar problema. No NeyHub, ficam no card do Aero.
 
 ### Alterado
+- O menu da barra virou um painel no tema Grafite: blocos com o desenho de cada encaixe e o atalho, direções de monitor apagadas quando não há monitor daquele lado, aviso de Acessibilidade com **Conceder**, linha de atualização pronta e **Ajuda ▾**.
 - Atualização automática sem perguntar: o Aero confere 5 s depois de abrir e a cada 6 h, baixa sozinho e troca a versão quando você fecha o app. Depois de atualizar, mostra as novidades uma vez. O item **Buscar atualizações…** saiu do menu.
-- Se o NeyHub já roda o Aero, o avulso avisa, sai dos itens de login e fecha, para não encaixar duas vezes.
+- Se o NeyHub já roda o Aero, o avulso avisa (um aviso só, o do Aero), sai dos itens de login e fecha, para não encaixar duas vezes.
 - O build exige o certificado "Aero Local Signing"; não assina mais ad-hoc.
 
 ## [0.4.1] - 2026-10-22

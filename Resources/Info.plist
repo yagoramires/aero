@@ -24,5 +24,7 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NeyHubAware</key>
+	<true/>
 </dict>
 </plist>

@@ -18,6 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.aero = aero
 
         let updater = Updater(name: "Aero", repo: "yagoramires/aero", id: "local.aero")
+        aero.updateReady = updater.staged != nil
+        updater.onChange = { [weak aero, weak updater] in aero?.updateReady = updater?.staged != nil }
         updater.start()
         self.updater = updater
         // Toda abertura: mostra as novidades uma vez e limpa um preparado velho.

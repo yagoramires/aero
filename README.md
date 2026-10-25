@@ -1,6 +1,6 @@
 # Aero
 
-Gerenciador de janelas para macOS que funciona como o do Windows: arraste até a borda, escolha a próxima janela e pronto, sem tela de configuração.
+Gerenciador de janelas para macOS que funciona como o do Windows: arraste até a borda, escolha a próxima janela e pronto, sem nada pra configurar.
 
 [Baixar a última versão](https://github.com/yagoramires/aero/releases/latest) · [Reportar problema](https://github.com/yagoramires/aero/issues/new)
 
@@ -19,7 +19,7 @@ Requer macOS 14 ou mais novo. Roda nativo em Apple Silicon e Intel. Também dá 
 
 ### Pelo NeyHub
 
-Quem usa o [NeyHub](https://github.com/yagoramires/neyhub) pode instalar o Aero pela Loja dele (o `Aero-x.y.z.neyplugin` do release). Aí o Aero roda dentro do NeyHub: o encaixe e o menu da barra são os mesmos, mas a Acessibilidade é dada ao NeyHub (pela tela **Permissões**), o NeyHub cuida do login e das atualizações, e o menu do Aero não tem **Abrir ao iniciar sessão** nem **Sair**. Feche o Aero avulso antes: se o NeyHub já roda o Aero, o avulso avisa, sai dos itens de login e fecha.
+Quem usa o [NeyHub](https://github.com/yagoramires/neyhub) pode instalar o Aero pela Loja dele (o `Aero-x.y.z.neyplugin` do release). Aí o Aero roda dentro do NeyHub: o encaixe e o menu da barra são os mesmos, mas a Acessibilidade é dada ao NeyHub (pela tela **Permissões**), o NeyHub cuida do login, das atualizações e de mostrar ou esconder o ícone, e o menu do Aero não tem **Abrir ao iniciar sessão** nem **Sair**. Feche o Aero avulso antes: se o NeyHub já roda o Aero, o avulso avisa (um aviso só), sai dos itens de login e fecha.
 
 ### Desinstalar
 
@@ -66,14 +66,17 @@ depuração fica só no seu Mac.
 
 ### Menu da barra
 
-Clique no ícone do Aero na barra de menu:
+Clique no ícone do Aero na barra de menu. Abre um painel escuro com a versão e um ponto verde (funcionando) ou âmbar (sem permissão):
 
-| Item | O que faz |
+| Parte | O que faz |
 | --- | --- |
-| Metades, quadrantes, Maximizar, Restaurar | Aplica a posição na janela em foco. Cada item tem o desenho da área que a janela vai ocupar e mostra o atalho, quando existe. |
-| Mover para outro monitor ▸ | Acima, abaixo, à esquerda ou à direita. Só ficam ativas as direções que têm monitor. |
+| Encaixar janela em foco | 8 blocos: metades, Maximizar, Restaurar e quadrantes, cada um com o desenho da área que a janela vai ocupar e o atalho, quando existe. Valem para a janela que estava em foco quando você clicou no ícone; sem janela em foco ficam apagados. |
+| Mover para outro monitor | Acima, abaixo, à esquerda ou à direita. Só ficam ativas as direções que têm monitor. |
+| Precisa de Acessibilidade · Conceder | Aparece no lugar dos blocos enquanto falta a permissão. **Conceder** abre os Ajustes (no NeyHub, a tela **Permissões**). |
+| Atalhos em uso por outro app | Aparece quando outro app (Rectangle?) segura algum `⌘` + seta. |
+| Atualização pronta — entra ao sair | Uma versão nova já foi baixada e entra quando você fechar o Aero. Não aparece dentro do NeyHub. |
 | Abrir ao iniciar sessão | Liga o Aero junto com o Mac. Não aparece dentro do NeyHub. |
-| Ajuda ▸ | Mostra a versão instalada, abre o log de depuração e reporta problemas. |
+| Ajuda ▾ | Mostra a versão instalada, abre o log de depuração e reporta problemas. |
 | Sair | Fecha o Aero. Não aparece dentro do NeyHub (fecharia o NeyHub inteiro). |
 
 ### Problemas
@@ -108,10 +111,10 @@ selecionar até lá. No Finder, `⌘↑`/`⌘↓` deixam de navegar entre pastas
 
 ## Modos de exibição
 
-O Aero não tem temas e roda só na barra de menus, sem janela. As escolhas ficam no menu da barra (as posições com o desenho da área que a janela vai ocupar e **Abrir ao iniciar sessão**) e nas configurações.
+O Aero não tem temas e roda só na barra de menus, sem janela. A única escolha de exibição é mostrar ou esconder o ícone; o encaixe e os atalhos continuam funcionando com ele escondido.
 
-- **Ícone na barra de menus**: o encaixe continua funcionando com o ícone escondido. Por enquanto, esconde com `defaults write local.aero presence.menuBar -bool false` e volta com `defaults delete local.aero presence.menuBar` (reabra o app).
-- **Configurações**: com o ícone escondido, abra o Aero de novo pelo Finder (ou Spotlight) e a janela de configurações aparece. Dentro do NeyHub, elas ficam no card do Aero, que não ganha item na barra lateral.
+- **Configurações**: com o ícone escondido, abra o Aero de novo pelo Finder (ou Spotlight) e a janela de configurações aparece. Ela só mostra o estado: o interruptor **Mostrar na barra de menus**, se a Acessibilidade foi concedida, a tabela de atalhos e os botões **Mostrar log de depuração** e **Reportar problema…**. Não há outras opções.
+- **Dentro do NeyHub**: as configurações ficam no card do Aero, que não ganha item na barra lateral, e sem o interruptor do ícone (quem mostra ou esconde é o NeyHub).
 
 ## Atualizações
 
@@ -129,7 +132,7 @@ Só precisa das Command Line Tools (`xcode-select --install`), não do Xcode.
 git clone https://github.com/yagoramires/aero.git && cd aero
 scripts/setup-signing.sh   # uma vez: certificado local de assinatura (veja abaixo)
 scripts/build.sh --run     # gera build/Aero.app e abre (fecha o Aero aberto antes)
-build/Aero.app/Contents/MacOS/Aero --selftest   # testes; imprime "selftest ok"
+scripts/selftest.sh        # testes; imprime "selftest ok"
 ```
 
 O NeyKit (tema, contrato de plugin) e o NeyKitApp (atualização, novidades) vêm do checkout do
@@ -149,7 +152,8 @@ O miolo fica em `Sources/AeroCore` e é o mesmo no app avulso e no plugin do Ney
 
 | Arquivo | Papel |
 | --- | --- |
-| `AeroApp.swift` | Menu da barra, permissão, inicialização e `stop()` (desinstalar no NeyHub). Recebe os `UserDefaults`, se está hospedado e a versão. |
+| `AeroApp.swift` | Ícone e painel da barra, permissão, inicialização e `stop()` (desinstalar no NeyHub). Recebe os `UserDefaults`, se está hospedado e a versão. |
+| `PopoverView.swift` | O painel do ícone, em SwiftUI no tema Grafite do NeyKit. |
 | `Window.swift` | Lê e move janelas de outros apps pela API de Acessibilidade. As posições vêm do WindowServer, porque muitos apps (Electron, WebKit) demoram a atualizar a posição informada pela Acessibilidade. |
 | `Geometry.swift` | Monitores, zonas de encaixe e detecção da borda sob o cursor. |
 | `WindowManager.swift` | Estado dos encaixes, tamanho original, espaço livre, atalhos, divisória compartilhada e persistência. |
@@ -158,7 +162,8 @@ O miolo fica em `Sources/AeroCore` e é o mesmo no app avulso e no plugin do Ney
 | `Hotkeys.swift` | Atalhos globais via Carbon (não precisam de permissão extra). |
 | `Log.swift` | Log de depuração em `~/Library/Logs/Aero/`, com rotação. |
 | `SettingsView.swift` | Configurações (janela do avulso e card no NeyHub). |
-| `SelfTest.swift` | `--selftest`. |
+| `SelfTest.swift` | `--selftest` (rode com `scripts/selftest.sh`). |
+| `Snapshots.swift` | `Aero --snapshots <pasta>` desenha o painel e as configurações em PNG. |
 
 As cascas: `Sources/Aero` (app avulso: confere se o NeyHub já roda o Aero, atualização e novidades
 do NeyKitApp) e `Sources/AeroPlugin` (o `libAeroPlugin.dylib` que o NeyHub carrega; linka só o NeyKit).

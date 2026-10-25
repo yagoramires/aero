@@ -11,6 +11,8 @@ enum Log {
     private static var handle: FileHandle?
     /// Vem do `AeroApp.init`: no NeyHub o `Bundle.main` é o do NeyHub.
     static var version = "?"
+    /// Desligado no --selftest e no --snapshots: não sujam o log de quem usa o Aero.
+    static var enabled = true
     private static let clock: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -18,6 +20,7 @@ enum Log {
     }()
 
     static func write(_ message: String) {
+        guard enabled else { return }
         if handle == nil { open() }
         guard let handle else { return }
         handle.seekToEndOfFile()
