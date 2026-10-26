@@ -10,11 +10,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Configurações em **Ajuda ▾ → Configurações…** (ou, com o ícone da barra escondido, abrindo o Aero de novo pelo Finder): janela com o interruptor **Mostrar na barra de menus**, o estado da Acessibilidade, a tabela de atalhos e os botões de log e de reportar problema. No NeyHub, ficam no card do Aero.
 
 ### Alterado
+- Ícone novo no padrão do NeyHub: o mesmo desenho, em fundo grafite com detalhe verde-limão.
 - O menu da barra virou um painel no tema Grafite: blocos com o desenho de cada encaixe e o atalho, direções de monitor apagadas quando não há monitor daquele lado, aviso de Acessibilidade com **Conceder**, linha de atualização pronta com **Reiniciar agora** e **Ajuda ▾**.
 - Atualização automática sem perguntar: o Aero confere 5 s depois de abrir e a cada 6 h, baixa sozinho e troca a versão quando você fecha o app. Depois de atualizar, mostra as novidades uma vez. O item **Buscar atualizações…** saiu do menu.
 - Se o NeyHub já roda o Aero, o avulso avisa (um aviso só, o do Aero), sai dos itens de login e fecha, para não encaixar duas vezes.
 - O build exige o certificado "Aero Local Signing"; não assina mais ad-hoc.
-- Arrastar uma janela pro espaço livre ao lado de outra já encaixada mostra a prévia e encaixa ali (a coluna inteira se estiver livre, senão o quadrante). Com a tela vazia, nada muda.
+- Com uma janela já encaixada, encostar na borda leva pro espaço livre ao lado dela (a coluna inteira se estiver livre, senão o quadrante). Só encaixa encostando na borda, nunca no meio da tela.
 
 ### Corrigido
 - No monitor de cima de dois empilhados, arrastar até embaixo não encaixava: o cursor passava direto pro monitor de baixo. Agora os últimos pixels antes dele contam como borda, e a borda de baixo encaixa no quadrante do lado do cursor (antes, só nos cantos).
