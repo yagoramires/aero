@@ -49,10 +49,10 @@ depuração fica só no seu Mac.
   de baixo do lado em que está o cursor. Uma prévia translúcida mostra onde a janela vai parar antes de
   você soltar. Com monitores empilhados, a faixa da barra de menu conta como topo do monitor de baixo, e
   os últimos pixels antes de passar pro monitor de baixo contam como borda de baixo do de cima.
-- **Arrastar pro espaço livre**: com alguma janela já encaixada no monitor, arrastar outra por cima
-  do espaço que sobrou (por exemplo, embaixo de uma janela no quadrante de cima) mostra a prévia e
-  encaixa ali — a coluna inteira se estiver livre, senão o quadrante. Com a tela vazia, a janela fica
-  solta onde você largar, como sempre.
+- **Borda leva pro espaço livre**: só encaixa com o cursor encostado na borda da tela, nunca no meio.
+  Com alguma janela já encaixada, a borda leva pro espaço que sobrou: com uma janela em cima à direita,
+  encostar na lateral direita (mais embaixo) ou na borda de baixo encaixa no quadrante de baixo; se a
+  coluna inteira estiver livre, vira a metade.
 - **Snap Assist**: depois de encaixar, aparecem as outras janelas abertas pra ocupar o espaço livre
   (clique, ou setas + Return; Esc fecha). Ele continua oferecendo até a tela encher, e não aparece
   se o espaço já estiver ocupado.

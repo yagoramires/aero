@@ -128,5 +128,13 @@ extension AeroApp {
         precondition(hole(1440, -465, free: all) == nil, "tela vazia: largar solta, sem encaixar")
         precondition(hole(1440, -465, free: []) == nil, "tela cheia")
         precondition(hole(1440, 200, free: rightTopTaken) == nil, "fora do monitor")
+
+        // Só encosta na borda é que encaixa; a borda vira o espaço livre quando a zona dela está ocupada.
+        func fit(_ z: SnapZone, _ x: CGFloat, _ y: CGFloat, free: Set<Cell>) -> SnapZone { SnapZone.fit(z, at: CGPoint(x: x, y: y), in: v, free: free) }
+        precondition(fit(.right, 1919, -300, free: rightTopTaken) == .bottomRight, "lateral direita embaixo da janela de cima à direita")
+        precondition(fit(.right, 1919, -300, free: all) == .right, "tela vazia: a metade de sempre")
+        precondition(fit(.left, 0, -300, free: rightTopTaken) == .left, "metade livre continua metade")
+        precondition(fit(.maximize, 960, -1049, free: rightTopTaken) == .maximize, "topo continua maximizando")
+        precondition(fit(.right, 1919, -900, free: rightTopTaken) == .right, "em cima da própria ocupada: a zona da borda")
     }
 }

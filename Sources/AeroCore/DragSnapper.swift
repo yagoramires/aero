@@ -131,7 +131,10 @@ final class DragSnapper {
     }
 
     private func update(_ point: CGPoint, dragging window: Window) {
-        let detected: (zone: SnapZone, display: Display)? = SnapZone.detect(at: point) ?? hole(at: point, excluding: window)
+        // Só encaixa encostando na borda; com algo já encaixado, a borda leva pro espaço livre.
+        let detected: (zone: SnapZone, display: Display)? = SnapZone.detect(at: point).map { zone, display in
+            (SnapZone.fit(zone, at: point, in: display.visible, free: free(on: display, excluding: window)), display)
+        }
         defer { target = detected }
         guard let detected else { return preview.hide() }
         // Só recalcula o espaço livre quando muda de zona; no meio da zona é a mesma prévia.
@@ -140,16 +143,13 @@ final class DragSnapper {
         }
     }
 
-    /// Fora das bordas: o espaço livre ao lado de janelas já encaixadas nesse monitor.
-    private func hole(at point: CGPoint, excluding window: Window) -> (zone: SnapZone, display: Display)? {
-        guard let display = Display.all.first(where: { $0.frame.contains(point) }) else { return nil }
-        let free = freeCells[display.id] ?? {
-            let taken = manager.snappedWindows(on: display).filter { $0.window.id != window.id }.flatMap { $0.zone.cells }
-            let free = Set(Cell.allCases).subtracting(taken)
-            freeCells[display.id] = free
-            return free
-        }()
-        return SnapZone.hole(at: point, in: display.visible, free: free).map { ($0, display) }
+    /// Quadrantes livres do monitor, sem contar a janela arrastada.
+    private func free(on display: Display, excluding window: Window) -> Set<Cell> {
+        if let free = freeCells[display.id] { return free }
+        let taken = manager.snappedWindows(on: display).filter { $0.window.id != window.id }.flatMap { $0.zone.cells }
+        let free = Set(Cell.allCases).subtracting(taken)
+        freeCells[display.id] = free
+        return free
     }
 
     private func finish() {

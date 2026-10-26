@@ -129,6 +129,14 @@ enum SnapZone: String {
         return top ? (left ? .topLeft : .topRight) : (left ? .bottomLeft : .bottomRight)
     }
 
+    /// Zona da borda ajustada ao que já está encaixado: se ela cobre um quadrante ocupado, vira o
+    /// espaço livre sob o cursor (lateral direita embaixo de uma janela em cima à direita → quadrante
+    /// de baixo). Maximizar e zona livre ficam como estão.
+    static func fit(_ zone: SnapZone, at p: CGPoint, in v: CGRect, free: Set<Cell>) -> SnapZone {
+        guard zone != .maximize, !free.isSuperset(of: zone.cells) else { return zone }
+        return hole(at: p, in: v, free: free) ?? zone
+    }
+
     /// Zona sob o cursor durante um arraste, quando ele encosta numa borda que não dá pra outro
     /// monitor (ou na barra de menu). Igual ao Windows: lateral = metade, canto = quadrante, topo = maximizar;
     /// embaixo, o quadrante do lado do cursor.
