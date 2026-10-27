@@ -11,6 +11,7 @@ extension AeroApp {
         stopped()
         bottomEdge()
         holes()
+        pinned()
     }
 
     /// Suite temporária no lugar do `.standard`; o chamador apaga. Nome fixo: não junta um plist por rodada.
@@ -136,5 +137,21 @@ extension AeroApp {
         precondition(fit(.left, 0, -300, free: rightTopTaken) == .left, "metade livre continua metade")
         precondition(fit(.maximize, 960, -1049, free: rightTopTaken) == .maximize, "topo continua maximizando")
         precondition(fit(.right, 1919, -900, free: rightTopTaken) == .right, "em cima da própria ocupada: a zona da borda")
+    }
+
+    /// App que aplica o tamanho com atraso (Gather, Electron) fica cortado antes da borda da tela.
+    static func pinned() {
+        let v = CGRect(x: 0, y: -1050, width: 1920, height: 1050)
+        func pin(_ r: CGRect, _ z: SnapZone) -> CGRect { SnapZone.pinned(r, zone: z, in: v) }
+        precondition(pin(CGRect(x: 720, y: -1050, width: 1168, height: 1050), .right) == CGRect(x: 720, y: -1050, width: 1200, height: 1050),
+                     "metade direita volta a encostar na borda direita")
+        precondition(pin(CGRect(x: 30, y: -1050, width: 690, height: 1050), .left) == CGRect(x: 0, y: -1050, width: 720, height: 1050),
+                     "metade esquerda volta a encostar na borda esquerda, sem mexer na divisa")
+        precondition(pin(CGRect(x: 960, y: -1050, width: 960, height: 500), .topRight) == CGRect(x: 960, y: -1050, width: 960, height: 500),
+                     "quadrante: a borda de baixo é divisa, não é borda da tela")
+        precondition(pin(CGRect(x: 960, y: -1050, width: 960, height: 1000), .right) == CGRect(x: 960, y: -1050, width: 960, height: 1050),
+                     "embaixo também encosta")
+        precondition(pin(CGRect(x: 720, y: -1050, width: 1000, height: 1050), .right) == CGRect(x: 720, y: -1050, width: 1000, height: 1050),
+                     "longe demais da borda: o usuário deixou assim, não puxa")
     }
 }

@@ -326,7 +326,9 @@ final class WindowManager {
                 return
             }
         }
-        followEdge(around, zone: s.zone, from: old, to: new)
+        // Vizinha que recusou o tamanho bateu no mínimo: assenta já, e a divisa trava ali em vez de
+        // passar por cima dela (e deixar de acompanhar, porque as bordas não coincidem mais).
+        if followEdge(around, zone: s.zone, from: old, to: new) { settleEdges(around: window) }
 
         // Os apps aplicam tamanho mínimo e arredondamentos com atraso; quando o resize assenta,
         // acerta as bordas com os frames reais.
@@ -337,7 +339,9 @@ final class WindowManager {
     }
 
     /// Durante o resize: quem encostava na borda que mudou vai junto.
-    private func followEdge(_ around: [Neighbor], zone: SnapZone, from old: CGRect, to new: CGRect) {
+    @discardableResult
+    private func followEdge(_ around: [Neighbor], zone: SnapZone, from old: CGRect, to new: CGRect) -> Bool {
+        var refused = false
         // Tolerância folgada porque apps como o Terminal arredondam o tamanho pra colunas inteiras.
         let tolerance: CGFloat = 24
         for (id, var other, o) in around {
@@ -357,9 +361,13 @@ final class WindowManager {
             }
             guard f != o, f.width > 0, f.height > 0 else { continue }
             apply(other.window, f)
+            // Tamanho lido pela Acessibilidade, que já reflete o set (a lista de janelas atrasa).
+            if let size = other.window.element.size(kAXSizeAttribute),
+               size.width > f.width + 1 || size.height > f.height + 1 { refused = true }
             other.frame = f
             snapped[id] = other
         }
+        return refused
     }
 
     /// Depois do resize: se ficou um vão, a vizinha estica; se ficou uma por cima da outra (a
@@ -398,10 +406,12 @@ final class WindowManager {
                 if b.maxY < a.minY { fixed.size.height = a.minY - b.minY }
                 else { a = CGRect(x: a.minX, y: b.maxY, width: a.width, height: a.maxY - b.maxY) }
             }
+            fixed = SnapZone.pinned(fixed, zone: other.zone, in: v)
             if fixed != real { apply(other.window, fixed) }
             other.frame = fixed
             snapped[id] = other
         }
+        a = SnapZone.pinned(a, zone: zone, in: v)
         if a != original { apply(window, a) }
         snapped[window.id]?.frame = a
         // A pilha termina no frame final da de cima, inclusive se ela recuou acima.

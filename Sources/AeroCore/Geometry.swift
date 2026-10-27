@@ -129,6 +129,19 @@ enum SnapZone: String {
         return top ? (left ? .topLeft : .topRight) : (left ? .bottomLeft : .bottomRight)
     }
 
+    /// O lado da zona que encosta na borda da tela volta a encostar nela. Apps que aplicam o tamanho
+    /// com atraso (Gather, Electron) ficam cortados no caminho quando a divisa anda; `reach` evita
+    /// puxar uma janela que o usuário deixou longe da borda.
+    static func pinned(_ r: CGRect, zone: SnapZone, in v: CGRect, reach: CGFloat = 80) -> CGRect {
+        let z = zone.frame(in: v)
+        var r = r
+        if z.minX == v.minX, r.minX != v.minX, abs(r.minX - v.minX) < reach { r = CGRect(x: v.minX, y: r.minY, width: r.maxX - v.minX, height: r.height) }
+        if z.maxX == v.maxX, r.maxX != v.maxX, abs(r.maxX - v.maxX) < reach { r.size.width = v.maxX - r.minX }
+        if z.minY == v.minY, r.minY != v.minY, abs(r.minY - v.minY) < reach { r = CGRect(x: r.minX, y: v.minY, width: r.width, height: r.maxY - v.minY) }
+        if z.maxY == v.maxY, r.maxY != v.maxY, abs(r.maxY - v.maxY) < reach { r.size.height = v.maxY - r.minY }
+        return r
+    }
+
     /// Zona da borda ajustada ao que já está encaixado: se ela cobre um quadrante ocupado, vira o
     /// espaço livre sob o cursor (lateral direita embaixo de uma janela em cima à direita → quadrante
     /// de baixo). Maximizar e zona livre ficam como estão.
