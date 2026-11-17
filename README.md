@@ -64,7 +64,7 @@ depuração fica só no seu Mac.
   vizinha chegar no tamanho mínimo dela, a outra para ali, sem ficar uma por cima da outra. Janelas
   encaixadas no mesmo lugar (uma por cima da outra, ou maximizadas) mudam de tamanho juntas. Vale
   pras janelas do mesmo Space, inclusive as minimizadas; as de outros Spaces não se mexem.
-- **Volta ao tamanho original**: arrastar uma janela encaixada (ou `⌘↓` numa maximizada) devolve
+- **Volta ao tamanho original**: arrastar uma janela encaixada (ou `⌥⌘↓` numa maximizada) devolve
   o tamanho de antes do primeiro encaixe, mesmo depois de trocar de encaixe várias vezes.
 - **Vários monitores**: arraste entre eles ou use os atalhos.
 - **Lembra dos encaixes** depois de reiniciar o app.
@@ -78,7 +78,7 @@ Clique no ícone do Aero na barra de menu. Abre um painel escuro com a versão e
 | Encaixar janela em foco | 8 blocos: metades, Maximizar, Restaurar e quadrantes, cada um com o desenho da área que a janela vai ocupar e o atalho, quando existe. Valem para a janela que estava em foco quando você clicou no ícone; sem janela em foco ficam apagados. |
 | Mover para outro monitor | Acima, abaixo, à esquerda ou à direita. Só ficam ativas as direções que têm monitor. |
 | Precisa de Acessibilidade · Conceder | Aparece no lugar dos blocos enquanto falta a permissão. **Conceder** abre os Ajustes (no NeyHub, a tela **Permissões**). |
-| Atalhos em uso por outro app | Aparece quando outro app (Rectangle?) segura algum `⌘` + seta. |
+| Atalhos em uso por outro app | Aparece quando outro app (Rectangle?) segura algum `⌥⌘` + seta. |
 | Atualização pronta — entra ao sair | Uma versão nova já foi baixada e entra quando você fechar o Aero. **Reiniciar agora** troca e reabre na hora. Não aparece dentro do NeyHub. |
 | Abrir ao iniciar sessão | Liga o Aero junto com o Mac. Não aparece dentro do NeyHub. |
 | Ajuda ▾ | Mostra a versão instalada, abre o log de depuração, reporta problemas e, fora do NeyHub, abre as **Configurações…**. |
@@ -109,14 +109,14 @@ Mesma lógica do `Win` + setas do Windows:
 
 | Atalho | O que faz |
 | --- | --- |
-| `⌘ ←` / `⌘ →` | Metade esquerda/direita. De novo, vai pro monitor ao lado. A seta oposta restaura. |
-| `⌘ ↑` | Maximiza. Numa metade, vai pro quadrante de cima. |
-| `⌘ ↓` | Restaura a maximizada. Numa metade, vai pro quadrante de baixo. Senão, minimiza. |
-| `⇧⌘` + setas | Leva a janela pro monitor daquele lado (inclusive em cima/embaixo). |
+| `⌥⌘ ←` / `⌥⌘ →` | Metade esquerda/direita. De novo, vai pro monitor ao lado. A seta oposta restaura. |
+| `⌥⌘ ↑` | Maximiza. Numa metade, vai pro quadrante de cima. |
+| `⌥⌘ ↓` | Restaura a maximizada. Numa metade, vai pro quadrante de baixo. Senão, minimiza. |
+| `⌥⇧⌘` + setas | Leva a janela pro monitor daquele lado (inclusive em cima/embaixo). |
 
-Como no Windows, os atalhos valem no sistema todo. Por isso, enquanto o Aero estiver aberto, `⌘` + setas
-deixam de ir pro começo/fim da linha e do documento nos campos de texto, e `⇧⌘` + setas deixam de
-selecionar até lá. No Finder, `⌘↑`/`⌘↓` deixam de navegar entre pastas.
+Como no Windows, os atalhos valem no sistema todo. `⌥⌘` + setas não mexem mais no cursor dos campos de texto
+(`⌘` + setas e `⇧⌘` + setas voltam a funcionar normal), mas, enquanto o Aero estiver aberto, `⌥⌘←`/`⌥⌘→`
+deixam de trocar de aba no Chrome, no VS Code e afins.
 
 ## Modos de exibição
 
@@ -184,8 +184,8 @@ chave o NeyHub não mostra o alerta dele quando o avulso abre (só declare em ap
 ```sh
 defaults write local.aero debugBridge -bool true   # liga os comandos abaixo; reabra o app
 scripts/debug.sh dump            # estado em /tmp/aero-debug.txt
-scripts/debug.sh left            # simula ⌘← na janela em foco (também right, up, down)
-scripts/debug.sh screen-up       # simula ⇧⌘↑ (também screen-down, screen-left, screen-right)
+scripts/debug.sh left            # simula ⌥⌘← na janela em foco (também right, up, down)
+scripts/debug.sh screen-up       # simula ⌥⇧⌘↑ (também screen-down, screen-left, screen-right)
 tail -f ~/Library/Logs/Aero/aero.log
 ```
 

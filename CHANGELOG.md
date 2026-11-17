@@ -2,6 +2,11 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.6.0] - 2026-11-17
+
+### Mudado
+- Atalhos agora com `⌥⌘` + setas (encaixar) e `⌥⇧⌘` + setas (mover de monitor), pra não brigar com `⌘` + setas dos campos de texto e do Finder.
+
 ## [0.5.0] - 2026-10-25
 
 ### Adicionado

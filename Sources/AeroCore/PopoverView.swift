@@ -6,7 +6,7 @@ struct PopoverState {
     var version: String
     var hosted: Bool
     var needsPermission: Bool
-    /// Outro app (Rectangle?) segura algum ⌘ + seta.
+    /// Outro app (Rectangle?) segura algum ⌥⌘ + seta.
     var hotkeysBusy: Bool
     var hasWindow: Bool
     /// Direções com monitor vizinho, a partir do monitor da janela em foco.
@@ -44,18 +44,18 @@ struct PopoverView: View {
 
     private struct Tile { let short: String, title: String, action: PopoverAction, key: String, area: CGRect }
     private static let tiles = [
-        Tile(short: "Esquerda", title: "Metade esquerda", action: .snap(.left), key: "⌘←", area: CGRect(x: 0, y: 0, width: 0.5, height: 1)),
-        Tile(short: "Direita", title: "Metade direita", action: .snap(.right), key: "⌘→", area: CGRect(x: 0.5, y: 0, width: 0.5, height: 1)),
-        Tile(short: "Maximizar", title: "Maximizar", action: .snap(.maximize), key: "⌘↑", area: CGRect(x: 0, y: 0, width: 1, height: 1)),
-        Tile(short: "Restaurar", title: "Restaurar", action: .restore, key: "⌘↓", area: CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)),
+        Tile(short: "Esquerda", title: "Metade esquerda", action: .snap(.left), key: "⌥⌘←", area: CGRect(x: 0, y: 0, width: 0.5, height: 1)),
+        Tile(short: "Direita", title: "Metade direita", action: .snap(.right), key: "⌥⌘→", area: CGRect(x: 0.5, y: 0, width: 0.5, height: 1)),
+        Tile(short: "Maximizar", title: "Maximizar", action: .snap(.maximize), key: "⌥⌘↑", area: CGRect(x: 0, y: 0, width: 1, height: 1)),
+        Tile(short: "Restaurar", title: "Restaurar", action: .restore, key: "⌥⌘↓", area: CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)),
         Tile(short: "Sup. esq.", title: "Superior esquerdo", action: .snap(.topLeft), key: "", area: CGRect(x: 0, y: 0, width: 0.5, height: 0.5)),
         Tile(short: "Sup. dir.", title: "Superior direito", action: .snap(.topRight), key: "", area: CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5)),
         Tile(short: "Inf. esq.", title: "Inferior esquerdo", action: .snap(.bottomLeft), key: "", area: CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5)),
         Tile(short: "Inf. dir.", title: "Inferior direito", action: .snap(.bottomRight), key: "", area: CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5)),
     ]
     private static let monitors: [(String, String, Direction, String)] = [
-        ("↑ Acima", "Monitor acima", .up, "⇧⌘↑"), ("↓ Abaixo", "Monitor abaixo", .down, "⇧⌘↓"),
-        ("← Esq.", "Monitor à esquerda", .left, "⇧⌘←"), ("→ Dir.", "Monitor à direita", .right, "⇧⌘→"),
+        ("↑ Acima", "Monitor acima", .up, "⌥⇧⌘↑"), ("↓ Abaixo", "Monitor abaixo", .down, "⌥⇧⌘↓"),
+        ("← Esq.", "Monitor à esquerda", .left, "⌥⇧⌘←"), ("→ Dir.", "Monitor à direita", .right, "⌥⇧⌘→"),
     ]
 
     var body: some View {

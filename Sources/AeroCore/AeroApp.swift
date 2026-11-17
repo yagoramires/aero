@@ -122,9 +122,9 @@ public final class AeroApp: NSObject {
         let arrows = [(kVK_LeftArrow, Direction.left), (kVK_RightArrow, .right),
                       (kVK_UpArrow, .up), (kVK_DownArrow, .down)]
         pendingHotkeys = arrows.map { key, direction in
-            (key, cmdKey, { [manager] in manager.handle(direction) })
+            (key, cmdKey | optionKey, { [manager] in manager.handle(direction) })
         } + arrows.map { key, direction in
-            (key, cmdKey | shiftKey, { [manager] in manager.moveToDisplay(direction) })
+            (key, cmdKey | optionKey | shiftKey, { [manager] in manager.moveToDisplay(direction) })
         }
         retry()
         // Se outro app (ex.: Rectangle) ainda segura algum atalho, ou o macOS demorou a liberar

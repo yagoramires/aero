@@ -20,8 +20,8 @@ struct SettingsView: View {
         _granted = ViewState(wrappedValue: trusted())
     }
 
-    private static let shortcuts = [("Metade esquerda / direita", "⌘← ⌘→"), ("Maximizar / restaurar", "⌘↑ ⌘↓"),
-                                    ("Mover de monitor", "⇧⌘ + setas")]
+    private static let shortcuts = [("Metade esquerda / direita", "⌥⌘← ⌥⌘→"), ("Maximizar / restaurar", "⌥⌘↑ ⌥⌘↓"),
+                                    ("Mover de monitor", "⌥⇧⌘ + setas")]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
