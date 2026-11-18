@@ -55,7 +55,6 @@ final class DragSnapper {
         return true
     }
 
-    /// Desinstalado no NeyHub: solta o event tap na hora.
     func stop() {
         watchdog?.invalidate()
         watchdog = nil
@@ -137,7 +136,7 @@ final class DragSnapper {
         }
         defer { target = detected }
         guard let detected else { return preview.hide() }
-        // Só recalcula o espaço livre quando muda de zona; no meio da zona é a mesma prévia.
+        // Dentro da mesma zona a prévia é a mesma: só reposiciona quando a zona ou o monitor mudam.
         if detected.zone != target?.zone || detected.display != target?.display {
             preview.show(manager.frame(for: detected.zone, on: detected.display, excluding: window.id))
         }
