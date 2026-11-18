@@ -7,6 +7,7 @@ extension AeroApp {
         Log.enabled = false
         defaultsInjected()
         hotkeyFilter()
+        shortcuts()
         popover()
         stopped()
         bottomEdge()
@@ -34,15 +35,15 @@ extension AeroApp {
         // Frame que nenhuma janela real tem: a entrada fica adormecida, não encaixa nada.
         let sentinel = NSStringFromRect(NSRect(x: -77777, y: -77777, width: 3, height: 3))
         let entry = ["zone": SnapZone.left.rawValue, "restore": sentinel, "frame": sentinel]
-        d.set([id: entry], forKey: "snapped")
+        d.set([id: entry], forKey: WindowManager.defaultsKey)
 
         let manager = WindowManager(defaults: d)
         manager.load()
-        d.removeObject(forKey: "snapped")
+        d.removeObject(forKey: WindowManager.defaultsKey)
         manager.save()
-        let saved = d.dictionary(forKey: "snapped") as? [String: [String: String]]
+        let saved = d.dictionary(forKey: WindowManager.defaultsKey) as? [String: [String: String]]
         precondition(saved?[id] == entry, "encaixe não voltou para o defaults injetado: \(String(describing: saved))")
-        let standard = UserDefaults.standard.dictionary(forKey: "snapped") as? [String: [String: String]]
+        let standard = UserDefaults.standard.dictionary(forKey: WindowManager.defaultsKey) as? [String: [String: String]]
         precondition(standard?[id]?["frame"] != sentinel, "encaixe vazou para o .standard")
     }
 
@@ -56,6 +57,14 @@ extension AeroApp {
         precondition(hotkeys.handle(EventHotKeyID(signature: Hotkeys.signature, id: 2)) == notHandled)
         precondition(hits == 0)
         precondition(hotkeys.handle(EventHotKeyID(signature: Hotkeys.signature, id: 1)) == noErr && hits == 1)
+    }
+
+    /// Rótulos e modificadores vêm de um lugar só; o menu e o registro dos atalhos não podem divergir.
+    static func shortcuts() {
+        precondition(Shortcut.count == 8)
+        precondition(Shortcut.snap.label(.left) == "⌥⌘←" && Shortcut.display.label(.down) == "⌥⇧⌘↓")
+        precondition(Shortcut.snap.modifiers == cmdKey | optionKey && Shortcut.display.modifiers == cmdKey | optionKey | shiftKey)
+        precondition(Direction.allCases.map(\.keyCode) == [kVK_LeftArrow, kVK_RightArrow, kVK_UpArrow, kVK_DownArrow])
     }
 
     /// Hospedado: sem "Abrir ao iniciar sessão" (é o login do NeyHub), sem "Sair" (fecharia o NeyHub) e sem

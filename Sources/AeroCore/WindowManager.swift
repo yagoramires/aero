@@ -4,6 +4,21 @@ import ApplicationServices
 /// Guarda quais janelas estão encaixadas e o tamanho que tinham antes, e aplica os encaixes
 /// vindos do arraste, dos atalhos e do Snap Assist.
 final class WindowManager {
+    /// Chave dos encaixes salvos em `defaults`.
+    static let defaultsKey = "snapped"
+    /// Quanto uma janela pode estar fora do frame guardado e ainda contar como encaixada ali.
+    private static let moveTolerance: CGFloat = 40
+    /// Folga folgada porque apps como o Terminal arredondam o tamanho pra colunas inteiras.
+    private static let edgeTolerance: CGFloat = 24
+    /// Quanto duas janelas precisam dividir de lado pra contarem como vizinhas.
+    private static let sharedSpan: CGFloat = 50
+    /// Depois de mexermos numa janela, o resize dela nesse prazo é eco nosso, não do usuário.
+    private static let echoWindow: TimeInterval = 0.3
+    /// Quando o resize assenta, os apps já aplicaram tamanho mínimo e arredondamento.
+    private static let settleDelay: TimeInterval = 0.35
+    /// Espera antes do Snap Assist quando o encaixe veio de atalho ou do menu (do arraste, é menor: o botão acabou de soltar).
+    private static let assistDelay: TimeInterval = 0.45
+
     struct Snapped {
         let window: Window
         var zone: SnapZone
@@ -154,7 +169,7 @@ final class WindowManager {
     func state(of window: Window) -> Snapped? {
         revive(window)
         guard let s = snapped[window.id] else { return nil }
-        guard window.frame.isClose(to: s.frame, tolerance: 40) else {
+        guard window.frame.isClose(to: s.frame, tolerance: Self.moveTolerance) else {
             forget(window.id, "saiu do lugar: \(window.frame) ≠ \(s.frame)")
             return nil
         }
@@ -201,11 +216,11 @@ final class WindowManager {
                                          "restore": NSStringFromRect(entry.value.restore),
                                          "frame": NSStringFromRect(entry.value.frame)]
         }
-        defaults.set(entries, forKey: "snapped")
+        defaults.set(entries, forKey: Self.defaultsKey)
     }
 
     func load() {
-        guard let saved = defaults.dictionary(forKey: "snapped") as? [String: [String: String]] else { return }
+        guard let saved = defaults.dictionary(forKey: Self.defaultsKey) as? [String: [String: String]] else { return }
         // Descarta janelas que não existem mais; as que existem mas não estão visíveis agora
         // ficam adormecidas.
         let existing = Set((CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] ?? [])
@@ -220,7 +235,7 @@ final class WindowManager {
               let zone = SnapZone(rawValue: entry["zone"] ?? ""),
               let restore = entry["restore"].map(NSRectFromString),
               let frame = entry["frame"].map(NSRectFromString),
-              window.frame.isClose(to: frame, tolerance: 40) else { return }
+              window.frame.isClose(to: frame, tolerance: Self.moveTolerance) else { return }
         snapped[window.id] = Snapped(window: window, zone: zone, restore: restore, frame: window.frame)
         observe(window)
     }
@@ -231,7 +246,7 @@ final class WindowManager {
         guard let window = Window.focused() else { return NSSound.beep() }
         let display = Display.best(for: window.frame)
         let zone = state(of: window)?.zone
-        let snap = { (z: SnapZone, d: Display) in self.snap(window, to: z, on: d, assistDelay: 0.45) }
+        let snap = { (z: SnapZone, d: Display) in self.snap(window, to: z, on: d, assistDelay: Self.assistDelay) }
 
         switch direction {
         case .left:
@@ -281,7 +296,7 @@ final class WindowManager {
     /// Encaixe escolhido no menu da barra, na janela em foco (o popover passa a que capturou no clique).
     func snapFocused(to zone: SnapZone, window: Window? = Window.focused()) {
         guard let window else { return NSSound.beep() }
-        snap(window, to: zone, on: Display.best(for: window.frame), assistDelay: 0.45)
+        snap(window, to: zone, on: Display.best(for: window.frame), assistDelay: Self.assistDelay)
     }
 
     /// ⌥⇧⌘ + setas: leva a janela pro monitor vizinho, mantendo o encaixe ou a posição relativa.
@@ -312,7 +327,7 @@ final class WindowManager {
         let old = s.frame, new = window.frame
         s.frame = new
         snapped[window.id] = s
-        if let echo = echoes[window.id], Date().timeIntervalSince(echo) < 0.3 { return }
+        if let echo = echoes[window.id], Date().timeIntervalSince(echo) < Self.echoWindow { return }
         guard new.size != old.size else { return }
         let around = neighbors(of: window, display: Display.best(for: old))
         // Coberta por outra da mesma pilha: quem manda é a da frente. Um resize atrasado dela
@@ -335,28 +350,26 @@ final class WindowManager {
         settles[window.id]?.cancel()
         let settle = DispatchWorkItem { [weak self] in self?.settleEdges(around: window) }
         settles[window.id] = settle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: settle)
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.settleDelay, execute: settle)
     }
 
     /// Durante o resize: quem encostava na borda que mudou vai junto.
     @discardableResult
     private func followEdge(_ around: [Neighbor], zone: SnapZone, from old: CGRect, to new: CGRect) -> Bool {
         var refused = false
-        // Tolerância folgada porque apps como o Terminal arredondam o tamanho pra colunas inteiras.
-        let tolerance: CGFloat = 24
-        for (id, var other, o) in around {
+        for (id, other, o) in around {
             var f = o
             // Encaixada embaixo, no mesmo lugar: muda junto, senão aparece no vão que abriu e
             // esconde a vizinha que acompanhou a borda.
             if isStacked(other.zone, o, with: zone, at: old) {
                 f = new
-            } else if new.maxX != old.maxX, abs(o.minX - old.maxX) < tolerance, o.verticalOverlap(old) > 50 {
+            } else if new.maxX != old.maxX, abs(o.minX - old.maxX) < Self.edgeTolerance, o.verticalOverlap(old) > Self.sharedSpan {
                 f = CGRect(x: new.maxX, y: o.minY, width: o.maxX - new.maxX, height: o.height)
-            } else if new.minX != old.minX, abs(o.maxX - old.minX) < tolerance, o.verticalOverlap(old) > 50 {
+            } else if new.minX != old.minX, abs(o.maxX - old.minX) < Self.edgeTolerance, o.verticalOverlap(old) > Self.sharedSpan {
                 f.size.width = new.minX - o.minX
-            } else if new.maxY != old.maxY, abs(o.minY - old.maxY) < tolerance, o.horizontalOverlap(old) > 50 {
+            } else if new.maxY != old.maxY, abs(o.minY - old.maxY) < Self.edgeTolerance, o.horizontalOverlap(old) > Self.sharedSpan {
                 f = CGRect(x: o.minX, y: new.maxY, width: o.width, height: o.maxY - new.maxY)
-            } else if new.minY != old.minY, abs(o.maxY - old.minY) < tolerance, o.horizontalOverlap(old) > 50 {
+            } else if new.minY != old.minY, abs(o.maxY - old.minY) < Self.edgeTolerance, o.horizontalOverlap(old) > Self.sharedSpan {
                 f.size.height = new.minY - o.minY
             }
             guard f != o, f.width > 0, f.height > 0 else { continue }
@@ -364,8 +377,7 @@ final class WindowManager {
             // Tamanho lido pela Acessibilidade, que já reflete o set (a lista de janelas atrasa).
             if let size = other.window.element.size(kAXSizeAttribute),
                size.width > f.width + 1 || size.height > f.height + 1 { refused = true }
-            other.frame = f
-            snapped[id] = other
+            snapped[id]?.frame = f
         }
         return refused
     }
@@ -374,12 +386,11 @@ final class WindowManager {
     /// vizinha bateu no tamanho mínimo), é a janela redimensionada que recua até ela.
     private func settleEdges(around window: Window) {
         guard let zone = snapped[window.id]?.zone else { return }
-        let reach: CGFloat = 80
         var a = window.frame
         let original = a
         var stack: [CGWindowID] = []
         let display = Display.best(for: a), v = display.visible
-        for (id, var other, real) in neighbors(of: window, display: display) {
+        for (id, other, real) in neighbors(of: window, display: display) {
             if isStacked(other.zone, real, with: zone, at: original) {
                 stack.append(id)
                 continue
@@ -393,33 +404,31 @@ final class WindowManager {
             let b = real.offsetBy(dx: inward(real.minX, real.maxX, v.minX, v.maxX),
                                   dy: inward(real.minY, real.maxY, v.minY, v.maxY))
             var fixed = b
-            if b.verticalOverlap(a) > 50, b.midX > a.midX, abs(b.minX - a.maxX) < reach {
+            if b.verticalOverlap(a) > Self.sharedSpan, b.midX > a.midX, abs(b.minX - a.maxX) < SnapZone.edgeReach {
                 if b.minX > a.maxX { fixed = CGRect(x: a.maxX, y: b.minY, width: b.maxX - a.maxX, height: b.height) }
                 else { a.size.width = b.minX - a.minX }
-            } else if b.verticalOverlap(a) > 50, b.midX < a.midX, abs(b.maxX - a.minX) < reach {
+            } else if b.verticalOverlap(a) > Self.sharedSpan, b.midX < a.midX, abs(b.maxX - a.minX) < SnapZone.edgeReach {
                 if b.maxX < a.minX { fixed.size.width = a.minX - b.minX }
                 else { a = CGRect(x: b.maxX, y: a.minY, width: a.maxX - b.maxX, height: a.height) }
-            } else if b.horizontalOverlap(a) > 50, b.midY > a.midY, abs(b.minY - a.maxY) < reach {
+            } else if b.horizontalOverlap(a) > Self.sharedSpan, b.midY > a.midY, abs(b.minY - a.maxY) < SnapZone.edgeReach {
                 if b.minY > a.maxY { fixed = CGRect(x: b.minX, y: a.maxY, width: b.width, height: b.maxY - a.maxY) }
                 else { a.size.height = b.minY - a.minY }
-            } else if b.horizontalOverlap(a) > 50, b.midY < a.midY, abs(b.maxY - a.minY) < reach {
+            } else if b.horizontalOverlap(a) > Self.sharedSpan, b.midY < a.midY, abs(b.maxY - a.minY) < SnapZone.edgeReach {
                 if b.maxY < a.minY { fixed.size.height = a.minY - b.minY }
                 else { a = CGRect(x: a.minX, y: b.maxY, width: a.width, height: a.maxY - b.maxY) }
             }
             fixed = SnapZone.pinned(fixed, zone: other.zone, in: v)
             if fixed != real { apply(other.window, fixed) }
-            other.frame = fixed
-            snapped[id] = other
+            snapped[id]?.frame = fixed
         }
         a = SnapZone.pinned(a, zone: zone, in: v)
         if a != original { apply(window, a) }
         snapped[window.id]?.frame = a
         // A pilha termina no frame final da de cima, inclusive se ela recuou acima.
         for id in stack {
-            guard var other = snapped[id] else { continue }
+            guard let other = snapped[id] else { continue }
             if other.window.frame != a { apply(other.window, a) }
-            other.frame = a
-            snapped[id] = other
+            snapped[id]?.frame = a
         }
     }
 

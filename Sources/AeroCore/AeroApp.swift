@@ -6,6 +6,9 @@ import SwiftUI
 
 /// O Aero inteiro, sem a casca: o avulso (`Aero`) e o plugin do NeyHub (`AeroPlugin`) usam o mesmo.
 public final class AeroApp: NSObject {
+    /// Identidade do Aero: domínio de defaults, id no NeyHub e no Updater, autosaveName do ícone e prefixo da ponte de depuração.
+    public static let id = "local.aero"
+
     private let defaults: UserDefaults
     /// Dentro do NeyHub: sem pedir Acessibilidade, sem item de login e sem "Sair".
     private let hosted: Bool
@@ -54,7 +57,6 @@ public final class AeroApp: NSObject {
         debugLog("iniciou\n\(Log.environment)")
     }
 
-    /// Desinstalar no NeyHub: o encaixe para na hora e o ícone sai.
     public func stop() {
         timers.forEach { $0.invalidate() }
         timers = []
@@ -70,7 +72,7 @@ public final class AeroApp: NSObject {
         debugLog("parou")
     }
 
-    /// false REMOVE o ícone; true cria com autosaveName "local.aero" (a posição na barra é lembrada).
+    /// false REMOVE o ícone; true cria com autosaveName fixo (a posição na barra é lembrada).
     public func setMenuBarVisible(_ visible: Bool) {
         if !visible, let statusItem {
             popover.performClose(nil)
@@ -78,7 +80,7 @@ public final class AeroApp: NSObject {
             self.statusItem = nil
         } else if visible, statusItem == nil {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-            item.autosaveName = "local.aero"
+            item.autosaveName = Self.id
             item.button?.image = menuBarIcon()
             item.button?.target = self
             item.button?.action = #selector(togglePopover)
@@ -119,12 +121,15 @@ public final class AeroApp: NSObject {
 
     private func begin() {
         manager.load()
-        let arrows = [(kVK_LeftArrow, Direction.left), (kVK_RightArrow, .right),
-                      (kVK_UpArrow, .up), (kVK_DownArrow, .down)]
-        pendingHotkeys = arrows.map { key, direction in
-            (key, cmdKey | optionKey, { [manager] in manager.handle(direction) })
-        } + arrows.map { key, direction in
-            (key, cmdKey | optionKey | shiftKey, { [manager] in manager.moveToDisplay(direction) })
+        pendingHotkeys = Shortcut.allCases.flatMap { shortcut in
+            Direction.allCases.map { direction in
+                (direction.keyCode, shortcut.modifiers, { [manager] in
+                    switch shortcut {
+                    case .snap: manager.handle(direction)
+                    case .display: manager.moveToDisplay(direction)
+                    }
+                })
+            }
         }
         retry()
         // Se outro app (ex.: Rectangle) ainda segura algum atalho, ou o macOS demorou a liberar
@@ -144,9 +149,9 @@ public final class AeroApp: NSObject {
         let before = pendingHotkeys.count
         pendingHotkeys.removeAll { hotkeys.register($0.key, $0.modifiers, $0.action) }
         if pendingHotkeys.count != before || !pendingHotkeys.isEmpty {
-            debugLog("atalhos: \(8 - pendingHotkeys.count) de 8 registrados")
+            debugLog("atalhos: \(Shortcut.count - pendingHotkeys.count) de \(Shortcut.count) registrados")
         }
-        if popover.isShown { popoverHost?.rootView = popoverView() }
+        refreshPopover()
     }
 
     /// Versão monocromática do ícone do app: metade cheia, quadrante cheio e quadrante vazio.
@@ -206,7 +211,7 @@ public final class AeroApp: NSObject {
         }
         // O macOS pode exigir aprovação manual em Ajustes → Geral → Itens de Início.
         if service.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
-        if popover.isShown { popoverHost?.rootView = popoverView() }
+        refreshPopover()
     }
 
     /// Comandos de teste via scripts/debug.sh; só liga com
@@ -214,18 +219,14 @@ public final class AeroApp: NSObject {
     private func setupDebugBridge() {
         guard defaults.bool(forKey: "debugBridge") else { return }
         debugObserver = DistributedNotificationCenter.default().addObserver(
-            forName: .init("local.aero.debug"), object: nil, queue: .main
+            forName: .init("\(Self.id).debug"), object: nil, queue: .main
         ) { [weak self, manager] note in
-            switch note.object as? String {
-            case "left": manager.handle(.left)
-            case "right": manager.handle(.right)
-            case "up": manager.handle(.up)
-            case "down": manager.handle(.down)
-            case "screen-left": manager.moveToDisplay(.left)
-            case "screen-right": manager.moveToDisplay(.right)
-            case "screen-up": manager.moveToDisplay(.up)
-            case "screen-down": manager.moveToDisplay(.down)
-            case "dump":
+            let command = note.object as? String ?? ""
+            if let direction = Direction(rawValue: command) {
+                manager.handle(direction)
+            } else if command.hasPrefix("screen-"), let direction = Direction(rawValue: String(command.dropFirst("screen-".count))) {
+                manager.moveToDisplay(direction)
+            } else if command == "dump" {
                 var lines = ["drag=\(self?.dragOK ?? false) tapEnabled=\(self?.drag.isEnabled ?? false) pendingHotkeys=\(self?.pendingHotkeys.count ?? -1) trusted=\(AXIsProcessTrusted())"]
                 lines += Display.all.map { "display frame=\($0.frame) visible=\($0.visible)" }
                 if let w = Window.focused() {
@@ -238,7 +239,6 @@ public final class AeroApp: NSObject {
                     "snapped \($0.window.id) \($0.zone.rawValue) frame=\($0.frame) restore=\($0.restore)"
                 }
                 try? lines.joined(separator: "\n").write(toFile: "/tmp/aero-debug.txt", atomically: true, encoding: .utf8)
-            default: break
             }
         }
     }
@@ -292,6 +292,10 @@ extension AeroApp: NSPopoverDelegate {
                             loginItem: hosted ? nil : SMAppService.mainApp.status == .enabled)
     }
 
+    private func refreshPopover() {
+        if popover.isShown { popoverHost?.rootView = popoverView() }
+    }
+
     private func popoverView() -> PopoverView {
         PopoverView(state: popoverState(for: target)) { [weak self] in self?.perform($0) }
     }
@@ -302,10 +306,11 @@ extension AeroApp: NSPopoverDelegate {
         if hosted, [.loginItem, .quit, .settings, .relaunch].contains(action) { return }
         if case .loginItem = action { return toggleLoginItem() }
         popover.performClose(nil)
+        // O popover ativou o Aero (ou o NeyHub): quem mexeu numa janela devolve o foco a ela.
         switch action {
-        case .snap(let zone): manager.snapFocused(to: zone, window: window)
-        case .restore: if let window { manager.restore(window) }
-        case .move(let direction): manager.moveToDisplay(direction, window: window)
+        case .snap(let zone): manager.snapFocused(to: zone, window: window); window?.focus()
+        case .restore: if let window { manager.restore(window) }; window?.focus()
+        case .move(let direction): manager.moveToDisplay(direction, window: window); window?.focus()
         case .grant: openAccessibilitySettings()
         case .showLog: showLog()
         case .report: reportProblem()
@@ -313,11 +318,6 @@ extension AeroApp: NSPopoverDelegate {
         case .settings: showSettings()
         case .relaunch: onRelaunch?()
         case .loginItem: break
-        }
-        // O popover ativou o Aero (ou o NeyHub): devolve o foco para a janela que foi mexida.
-        switch action {
-        case .snap, .restore, .move: window?.focus()
-        default: break
         }
     }
 }

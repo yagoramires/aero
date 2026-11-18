@@ -1,5 +1,38 @@
 import Carbon
 
+/// Os dois grupos de atalhos do Aero. Modificadores, setas e rótulos (menu, ajustes, log) saem daqui.
+enum Shortcut: CaseIterable {
+    /// Encaixar a janela em foco.
+    case snap
+    /// Levar a janela pro monitor vizinho.
+    case display
+
+    var modifiers: Int { self == .snap ? cmdKey | optionKey : cmdKey | optionKey | shiftKey }
+    var symbols: String { self == .snap ? "⌥⌘" : "⌥⇧⌘" }
+    func label(_ direction: Direction) -> String { symbols + direction.arrow }
+    static var count: Int { allCases.count * Direction.allCases.count }
+}
+
+extension Direction {
+    var keyCode: Int {
+        switch self {
+        case .left: return kVK_LeftArrow
+        case .right: return kVK_RightArrow
+        case .up: return kVK_UpArrow
+        case .down: return kVK_DownArrow
+        }
+    }
+
+    var arrow: String {
+        switch self {
+        case .left: return "←"
+        case .right: return "→"
+        case .up: return "↑"
+        case .down: return "↓"
+        }
+    }
+}
+
 /// Atalhos globais via Carbon: não precisam de permissão extra e não deixam a tecla vazar pro app.
 final class Hotkeys {
     static let signature = OSType(0x4165_726F) // 'Aero'

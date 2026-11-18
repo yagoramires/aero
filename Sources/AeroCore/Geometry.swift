@@ -1,6 +1,6 @@
 import AppKit
 
-enum Direction {
+enum Direction: String, CaseIterable {
     case left, right, up, down
 }
 
@@ -122,23 +122,25 @@ enum SnapZone: String {
     static func hole(at p: CGPoint, in v: CGRect, free: Set<Cell>) -> SnapZone? {
         guard !free.isEmpty, free.count < 4, v.contains(p) else { return nil }
         let left = p.x < v.midX, top = p.y < v.midY
-        let cell: Cell = top ? (left ? .topLeft : .topRight) : (left ? .bottomLeft : .bottomRight)
-        guard free.contains(cell) else { return nil }
+        let quarter: SnapZone = top ? (left ? .topLeft : .topRight) : (left ? .bottomLeft : .bottomRight)
+        guard free.isSuperset(of: quarter.cells) else { return nil }
         let half: SnapZone = left ? .left : .right
-        if free.isSuperset(of: half.cells) { return half }
-        return top ? (left ? .topLeft : .topRight) : (left ? .bottomLeft : .bottomRight)
+        return free.isSuperset(of: half.cells) ? half : quarter
     }
 
+    /// Até onde `pinned` e o `settleEdges` do WindowManager puxam uma borda que ficou longe da dela.
+    static let edgeReach: CGFloat = 80
+
     /// O lado da zona que encosta na borda da tela volta a encostar nela. Apps que aplicam o tamanho
-    /// com atraso (Gather, Electron) ficam cortados no caminho quando a divisa anda; `reach` evita
+    /// com atraso (Gather, Electron) ficam cortados no caminho quando a divisa anda; `edgeReach` evita
     /// puxar uma janela que o usuário deixou longe da borda.
-    static func pinned(_ r: CGRect, zone: SnapZone, in v: CGRect, reach: CGFloat = 80) -> CGRect {
+    static func pinned(_ r: CGRect, zone: SnapZone, in v: CGRect) -> CGRect {
         let z = zone.frame(in: v)
         var r = r
-        if z.minX == v.minX, r.minX != v.minX, abs(r.minX - v.minX) < reach { r = CGRect(x: v.minX, y: r.minY, width: r.maxX - v.minX, height: r.height) }
-        if z.maxX == v.maxX, r.maxX != v.maxX, abs(r.maxX - v.maxX) < reach { r.size.width = v.maxX - r.minX }
-        if z.minY == v.minY, r.minY != v.minY, abs(r.minY - v.minY) < reach { r = CGRect(x: r.minX, y: v.minY, width: r.width, height: r.maxY - v.minY) }
-        if z.maxY == v.maxY, r.maxY != v.maxY, abs(r.maxY - v.maxY) < reach { r.size.height = v.maxY - r.minY }
+        if z.minX == v.minX, r.minX != v.minX, abs(r.minX - v.minX) < edgeReach { r = CGRect(x: v.minX, y: r.minY, width: r.maxX - v.minX, height: r.height) }
+        if z.maxX == v.maxX, r.maxX != v.maxX, abs(r.maxX - v.maxX) < edgeReach { r.size.width = v.maxX - r.minX }
+        if z.minY == v.minY, r.minY != v.minY, abs(r.minY - v.minY) < edgeReach { r = CGRect(x: r.minX, y: v.minY, width: r.width, height: r.maxY - v.minY) }
+        if z.maxY == v.maxY, r.maxY != v.maxY, abs(r.maxY - v.maxY) < edgeReach { r.size.height = v.maxY - r.minY }
         return r
     }
 

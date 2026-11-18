@@ -49,10 +49,14 @@ struct Window {
         return Window(window)
     }
 
+    /// Tudo o que o WindowServer mostra agora (Space atual, sem a área de trabalho), da frente pra trás.
+    private static func onScreenInfo() -> [[String: Any]] {
+        CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+    }
+
     /// Janelas normais visíveis no Space atual, da frente pra trás.
     static func allVisible() -> [Window] {
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        guard let info = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else { return [] }
+        let info = onScreenInfo()
         var order: [CGWindowID: Int] = [:]
         var pids = Set<pid_t>()
         for (index, entry) in info.enumerated() {
@@ -80,21 +84,14 @@ struct Window {
 
     /// IDs das janelas normais na tela agora (Space atual, não minimizadas), da frente pra trás.
     static func onScreen() -> [CGWindowID] {
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        let info = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
-        return info.compactMap { entry in
+        onScreenInfo().compactMap { entry in
             entry[kCGWindowLayer as String] as? Int == 0 ? entry[kCGWindowNumber as String] as? CGWindowID : nil
         }
     }
 
-    /// Frame real na tela. Vem do WindowServer, porque muitos apps (Electron, WebKit) demoram a
-    /// atualizar a posição na Acessibilidade durante arrastes e depois de redimensionados; a
-    /// Acessibilidade só entra quando a janela não está visível (minimizada, outro Space).
     /// Frames de todas as janelas visíveis numa consulta só ao WindowServer.
     static func visibleFrames() -> [CGWindowID: CGRect] {
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        let info = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
-        return info.reduce(into: [:]) { result, entry in
+        onScreenInfo().reduce(into: [:]) { result, entry in
             guard let id = entry[kCGWindowNumber as String] as? CGWindowID,
                   let bounds = entry[kCGWindowBounds as String] as! CFDictionary?,
                   let rect = CGRect(dictionaryRepresentation: bounds) else { return }
@@ -102,6 +99,9 @@ struct Window {
         }
     }
 
+    /// Frame real na tela. Vem do WindowServer, porque muitos apps (Electron, WebKit) demoram a
+    /// atualizar a posição na Acessibilidade durante arrastes e depois de redimensionados; a
+    /// Acessibilidade só entra quando a janela não está visível (minimizada, outro Space).
     var frame: CGRect {
         serverFrame ?? CGRect(origin: element.point(kAXPositionAttribute) ?? .zero,
                               size: element.size(kAXSizeAttribute) ?? .zero)

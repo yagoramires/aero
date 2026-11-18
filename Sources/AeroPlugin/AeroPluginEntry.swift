@@ -4,7 +4,7 @@ import NeyKit
 
 /// Aero dentro do NeyHub. Linka só AeroCore e NeyKit (nunca NeyKitApp).
 final class AeroEntry: NSObject, NeyPlugin {
-    private lazy var app = AeroApp(defaults: AppDefaults.forApp("local.aero"), hosted: true, version: PluginLocation.version(dso: #dsohandle))
+    private lazy var app = AeroApp(defaults: AppDefaults.forApp(AeroApp.id), hosted: true, version: PluginLocation.version(dso: #dsohandle))
 
     var contractVersion: Int { neyPluginContractVersion }
 

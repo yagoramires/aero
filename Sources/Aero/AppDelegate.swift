@@ -9,21 +9,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var updater: Updater?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if HubCheck.isHosted(id: "local.aero") && HubCheck.leaveForHub(id: "local.aero", name: "Aero") { return }
+        if HubCheck.isHosted(id: AeroApp.id) && HubCheck.leaveForHub(id: AeroApp.id, name: "Aero") { return }
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
         let aero = AeroApp(defaults: .standard, hosted: false, version: version)
         aero.start()
         aero.setMenuBarVisible(Presence.load(.standard, hasScreen: false).menuBar)
         self.aero = aero
 
-        let updater = Updater(name: "Aero", repo: "yagoramires/aero", id: "local.aero")
+        let updater = Updater(name: "Aero", repo: "yagoramires/aero", id: AeroApp.id)
         aero.updateReady = updater.staged != nil
         updater.onChange = { [weak aero, weak updater] in aero?.updateReady = updater?.staged != nil }
         aero.onRelaunch = { [weak updater] in updater?.relaunchNow() }
         updater.start()
         self.updater = updater
         // Toda abertura: mostra as novidades uma vez e limpa um preparado velho.
-        if let notes = Updater.notesAfterUpdate(id: "local.aero", current: version) {
+        if let notes = Updater.notesAfterUpdate(id: AeroApp.id, current: version) {
             WhatsNew.show(name: "Aero", version: version, notes: notes)
         }
     }
